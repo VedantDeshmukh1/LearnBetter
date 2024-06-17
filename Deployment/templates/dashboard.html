@@ -3,6 +3,17 @@
 <head>
     <title>Dashboard</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .course-card {
+            min-width: 300px;
+            margin: 10px;
+        }
+        .courses-container {
+            display: flex;
+            overflow-x: auto;
+            padding: 20px;
+        }
+    </style>
 </head>
 <body>
     <div class="container my-5">
@@ -17,6 +28,22 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <h3 class="text-center my-4">Available Courses</h3>
+        <div class="courses-container">
+            {% for course in courses %}
+                <div class="card course-card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ course.course_name }}</h5>
+                        <p class="card-text">Instructor: {{ course.course_instructor }}</p>
+                        <p class="card-text">Rating: {{ course.course_rating }}★</p>
+                        <p class="card-text">Duration: {{ course.course_length }}</p>
+                        <p class="card-text">Cost: ₹ {{ course.course_price }}</p>
+                        <a href="#" class="btn btn-primary">Enroll</a>
+                    </div>
+                </div>
+            {% endfor %}
         </div>
     </div>
 </body>

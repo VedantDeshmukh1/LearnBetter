@@ -72,9 +72,9 @@ def signup():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'user' in session:
-        return render_template('dashboard.html')
-    return redirect(url_for('index'))
+    courses_ref = firestore_db.collection('course_details')
+    courses = [doc.to_dict() for doc in courses_ref.stream()]
+    return render_template('dashboard.html', courses=courses)
 
 @app.route('/logout')
 def logout():
