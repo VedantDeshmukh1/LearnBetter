@@ -111,5 +111,58 @@ def set_data():
     })
     return redirect(url_for('dashboard'))
 
+@app.route('/teacher_signup', methods=['GET', 'POST'])
+def teacher_signup():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        password = request.form['password']
+        try:
+            user = auth.create_user_with_email_and_password(email, password)
+            # Add the teacher's information to Firestore
+            teachers_ref = firestore_db.collection('teachers')
+            teachers_ref.document(user['localId']).set({
+                'name': name,
+                'email': email
+            })
+            session['user'] = user['localId']
+            session['user_type'] = 'teacher'
+            return redirect(url_for('teacher_dashboard'))
+        except Exception as e:
+            error_message = 'Email already exists'
+            if 'WEAK_PASSWORD' in str(e):
+                error_message = 'Password should be at least 6 characters'
+            return render_template('teacher_signup.html', error=error_message)
+    return render_template('teacher_signup.html')
+
+@app.route('/teacher_dashboard')
+def teacher_dashboard():
+    if 'user' in session and 'user_type' in session and session['user_type'] == 'teacher':
+        # Fetch the teacher's courses from Firestore
+        courses_ref = firestore_db.collection('courses').where('teacher_id', '==', session['user'])
+        courses = courses_ref.stream()
+        return render_template('teacher_dashboard.html', courses=courses)
+    return redirect(url_for('index'))
+
+@app.route('/add_course', methods=['GET', 'POST'])
+def add_course():
+    if 'user' in session and 'user_type' in session and session['user_type'] == 'teacher':
+        if request.method == 'POST':
+            course_name = request.form['course_name']
+            video_url = request.form['video_url']
+            price = request.form['price']
+            description = request.form['description']
+            courses_ref = firestore_db.collection('courses')
+            courses_ref.add({
+                'course_name': course_name,
+                'video_url': video_url,
+                'price': float(price),
+                'description': description,
+                'teacher_id': session['user']
+            })
+            return redirect(url_for('teacher_dashboard'))
+        return render_template('add_course.html')
+    return redirect(url_for('index'))
+
 if __name__ == '__main__':
     app.run(debug=True)
