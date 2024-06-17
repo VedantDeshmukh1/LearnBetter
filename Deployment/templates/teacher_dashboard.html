@@ -1,0 +1,21 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<h1>Teacher Dashboard</h1>
+<a href="{{ url_for('add_course') }}" class="btn btn-primary">Add Course</a>
+<h2>Your Courses</h2>
+{% if courses %}
+<ul>
+    {% for course in courses %}
+    <li>
+        <h3>{{ course.to_dict().course_name }}</h3>
+        <p>{{ course.to_dict().description }}</p>
+        <p>Price: ${{ course.to_dict().price }}</p>
+        <p>Video: <a href="{{ course.to_dict().video_url }}">Link</a></p>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>You haven't added any courses yet.</p>
+{% endif %}
+{% endblock %}
