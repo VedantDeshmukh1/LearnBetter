@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Player</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #000;
+        }
+        .video-container {
+            position: relative;
+            width: 640px;
+            height: 360px;
+            overflow: hidden;
+        }
+        iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <iframe id="video-player" src="https://drive.google.com/file/d/1N87d-yAuHrGybDUsHRe2xBEv3HP87cDM/preview" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+    </div>
+
+    <script>
+        // Get the video player iframe
+        const videoPlayer = document.getElementById('video-player');
+
+        // Variable to store the timestamp
+        let timestamp = 0;
+
+        // Array to store the list of pauses and seeks
+        let events = [];
+
+        // Function to save the timestamp
+        function saveTimestamp() {
+            videoPlayer.contentWindow.postMessage({ type: 'getCurrentTime' }, '*');
+        }
+
+        // Function to load the timestamp
+        function loadTimestamp() {
+            videoPlayer.contentWindow.postMessage({ type: 'seekTo', time: timestamp }, '*');
+        }
+
+        // Function to handle pause events
+        function handlePause() {
+            videoPlayer.contentWindow.postMessage({ type: 'getCurrentTime' }, '*');
+        }
+
+        // Function to handle seek events
+        function handleSeek() {
+            videoPlayer.contentWindow.postMessage({ type: 'getCurrentTime' }, '*');
+        }
+
+        // Function to save events to a JSON file
+        function saveEventsToFile() {
+            const jsonData = JSON.stringify(events, null, 2);
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'video_events.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Listen for the 'beforeunload' event to save the timestamp and events before the page is closed
+        window.addEventListener('beforeunload', () => {
+            saveTimestamp();
+            saveEventsToFile();
+        });
+
+        // Listen for the 'load' event to load the timestamp when the page is loaded
+        window.addEventListener('load', loadTimestamp);
+
+        // Listen for messages from the iframe
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'currentTime') {
+                timestamp = event.data.time;
+                console.log('Timestamp saved:', timestamp);
+            } else if (event.data.type === 'pause') {
+                events.push({ type: 'pause', time: event.data.time });
+                console.log('Pause event recorded:', event.data.time);
+            } else if (event.data.type === 'seek') {
+                events.push({ type: 'seek', time: event.data.time });
+                console.log('Seek event recorded:', event.data.time);
+            }
+        });
+    </script>
+</body>
+</html>
