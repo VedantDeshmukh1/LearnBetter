@@ -1,0 +1,128 @@
+/* Reset and Basic Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+}
+
+/* Header */
+header {
+    background-color: #f4f4f4;
+    padding: 1rem;
+    text-align: right;
+}
+
+nav a {
+    display: inline-block;
+    margin-left: 1rem;
+    text-decoration: none;
+    color: #333;
+}
+
+/* Main Content */
+main {
+    padding: 2rem;
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.avatar {
+    width: 80px;
+    height: 80px;
+    background-color: #ccc;
+    border-radius: 50%;
+    margin-right: 1rem;
+}
+
+.rating {
+    display: flex;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.star {
+    color: #ffc107;
+}
+
+.rating-count {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.add-course {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+}
+
+.dashboard {
+    display: flex;
+    justify-content: space-between;
+}
+
+.dashboard nav {
+    background-color: #f4f4f4;
+    padding: 1rem;
+    border-radius: 0.25rem;
+}
+
+.dashboard nav ul {
+    list-style: none;
+    margin-top: 1rem;
+}
+
+.dashboard nav li {
+    margin-bottom: 0.5rem;
+}
+
+.stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+}
+
+.stat {
+    background-color: #f4f4f4;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    text-align: center;
+    flex: 1;
+    margin-right: 1rem;
+}
+
+.stat:last-child {
+    margin-right: 0;
+}
+
+.stat h4 {
+    margin-bottom: 0.5rem;
+}
+
+.stat p {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.stat small {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+footer {
+    background-color: #f4f4f4;
+    padding: 1rem;
+    text-align: center;
+    margin-top: 2rem;
+}
