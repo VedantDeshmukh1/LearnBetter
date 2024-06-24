@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>User Dashboard</h1>
+<p>Welcome, {{ user['first_name'] }} {{ user['last_name'] }}!</p>
+<nav class="dashboard-nav">
+    <ul>
+        <li><a href="{{ url_for('my_courses') }}">My Courses</a></li>
+        <li><a href="{{ url_for('browse_courses') }}">Browse Courses</a></li>
+        <li><a href="{{ url_for('my_reviews') }}">My Reviews</a></li>
+        <li><a href="{{ url_for('profile') }}">My Profile</a></li>
+    </ul>
+</nav>
+{% endblock %}
