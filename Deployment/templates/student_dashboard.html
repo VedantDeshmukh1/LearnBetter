@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='student_dashboard.css') }}">
+    <title>Student Dashboard</title>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </nav>
+    </header>
+    <div class="sidebar">
+        <a class="active" href="#dashboard">Dashboard</a>
+        <a href="#profile">Profile</a>
+        <a href="#courses">Courses</a>
+    </div>
+    <div class="content">
+        <div class="profile-section">
+            <img src="path/to/profile-pic.jpg" alt="Profile Picture">
+            <h2>Welcome, Student Name</h2>
+        </div>
+        <div class="courses-container">
+            {% for course in courses[:6] %}
+                <div class="card course-card">
+                    <div class="card-body">
+                        <img src="{{ course.thumbnail_url }}" alt="Course Thumbnail" class="course-thumbnail">
+                        <h5 class="card-title">{{ course.course_name }}</h5>
+                        <p class="card-text">Instructor: {{ course.course_instructor }}</p>
+                        <p class="card-text">Rating: {{ course.course_rating }}★</p>
+                        <p class="card-text">Duration: {{ course.course_length }}</p>
+                        <p class="card-text">Cost: ₹ {{ course.course_price }}</p>
+                        <a href="#" class="btn btn-primary">Enroll</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <button id="show-more" class="btn btn-secondary">Show More</button>
+    </div>
+    <script>
+    let currentIndex = 6;
+    const jsCourses = {{ courses|tojson }};
+    document.getElementById('show-more').addEventListener('click', function() {
+        const container = document.querySelector('.courses-container');
+            for (let i = currentIndex; i < currentIndex + 6 && i < jsCourses.length; i++) {
+                const course = jsCourses[i];
+                const card = document.createElement('div');
+                card.className = 'card course-card';
+                card.innerHTML = `
+                    <div class="card-body">
+                        <img src="${course.thumbnail_url}" alt="Course Thumbnail" class="course-thumbnail">
+                        <h5 class="card-title">${course.course_name}</h5>
+                        <p class="card-text">Instructor: ${course.course_instructor}</p>
+                        <p class="card-text">Rating: ${course.course_rating}★</p>
+                        <p class="card-text">Duration: ${course.course_length}</p>
+                        <p class="card-text">Cost: ₹ ${course.course_price}</p>
+                        <a href="#" class="btn btn-primary">Enroll</a>
+                    </div>
+                `;
+                container.appendChild(card);
+            }
+            currentIndex += 6;
+            if (currentIndex >= jsCourses.length) {
+                document.getElementById('show-more').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

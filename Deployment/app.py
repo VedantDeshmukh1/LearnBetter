@@ -39,7 +39,7 @@ rt_db_ref = db.reference('/')
 @app.route('/')
 def index():
     if 'user' in session:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('student_dashboard'))
     return render_template('index.html')
 
 @app.route('/login', methods=['POST'])
@@ -70,11 +70,11 @@ def signup():
             error_message = 'Password should be at least 6 characters'
         return render_template('index.html', error=error_message)
 
-@app.route('/dashboard')
+@app.route('/student_dashboard')
 def dashboard():
     courses_ref = firestore_db.collection('course_details')
     courses = [doc.to_dict() for doc in courses_ref.stream()]
-    return render_template('dashboard.html', courses=courses)
+    return render_template('student_dashboard.html', courses=courses)
 
 @app.route('/logout')
 def logout():
