@@ -65,6 +65,7 @@ def register():
                 "first_name": first_name,
                 "last_name": last_name
             }
+            auth.send_email_verification(user['idToken'])
             db.child("users").push(user_data)
             print(f"User registered: {user_data}")  # Debug print
             flash('Registration successful. Check your email for login credentials.', 'success')
