@@ -1,18 +1,26 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 import pyrebase
 from config import firebase_config
 import os
 import random
 import string
 import re
+from firebase_admin import credentials, firestore, initialize_app
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
+
 # Initialize Firebase
 firebase = pyrebase.initialize_app(firebase_config)
 auth = firebase.auth()
-db = firebase.database()
+rdb = firebase.database()
+
+
+# Initialize Firebase Admin SDK
+cred = credentials.Certificate("learnbetter-acad7-firebase-adminsdk-36uok-bc0c7e1ebd.json")
+initialize_app(cred)
+db = firestore.client()
 
 def generate_username(first_name, last_name, email):
     username = first_name[:2] + last_name[:2] + str(len(email)) + str(random.randint(100, 999))
@@ -35,7 +43,23 @@ def generate_password():
 
 @app.route('/')
 def home():
-    return render_template('home.html')
+    courses = []
+    course_docs = db.collection('course_details').limit(6).stream()
+    for doc in course_docs:
+        course = doc.to_dict()
+        course['id'] = doc.id
+        courses.append(course)
+    return render_template('home.html', courses=courses)
+
+@app.route('/load_more_courses/<int:offset>')
+def load_more_courses(offset):
+    courses = []
+    course_docs = db.collection('course_details').offset(offset).limit(6).stream()
+    for doc in course_docs:
+        course = doc.to_dict()
+        course['id'] = doc.id
+        courses.append(course)
+    return jsonify(courses)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -57,19 +81,41 @@ def register():
         
         try:
             user = auth.create_user_with_email_and_password(email, password)
-            # Add user to database
-            user_data = {
+            user_id = user['localId']
+            
+            # Add user to Realtime Database
+            user_data_rdb = {
                 "email": email,
                 "username": username,
                 "password": password,
                 "first_name": first_name,
                 "last_name": last_name
             }
+            rdb.child("users").child(user_id).set(user_data_rdb)
+            
+            # Add user to Firestore
+            user_data_firestore = {
+                'user_id': user_id,
+                'email_id': email,
+                'name': f"{first_name} {last_name}",
+                'role': 'student',
+                'courses_enrolled': {}
+            }
+            db.collection('users').document(user_id).set(user_data_firestore)
+            
+            # Create student_details document
+            student_data = {
+                'student_id': user_id,
+                'name': f"{first_name} {last_name}",
+                'email': email,
+                'purchased_courses': [],
+                'progress': {}
+            }
+            db.collection('student_details').document(user_id).set(student_data)
+            
             auth.send_email_verification(user['idToken'])
-            db.child("users").push(user_data)
-            print(f"User registered: {user_data}")  # Debug print
+            print(f"User registered: {user_data_rdb}")  # Debug print
             flash('Registration successful. Check your email for login credentials.', 'success')
-            # Here you would send an email with the username and password
             return redirect(url_for('login'))
         except Exception as e:
             print(f"Registration error: {str(e)}")  # Debug print
@@ -82,24 +128,29 @@ def login():
         username = request.form['username']
         password = request.form['password']
         
-        users = db.child("users").get()
-        if users.each() is None:
-            print("No users found in the database")
-            flash('No users found in the database', 'error')
-            return render_template('login.html')
-
-        for user in users.each():
-            print(f"Checking user: {user.val()}")  # Debug print
-            if 'email' in user.val() and user.val()['email'] == username and user.val()['password'] == password:
-                session['user'] = user.val()
+        try:
+            # First, find the user in the Realtime Database to get their email
+            users = rdb.child("users").get()
+            user_data = None
+            for user in users.each():
+                if user.val()['username'] == username:
+                    user_data = user.val()
+                    break
+            
+            if user_data:
+                # Use the email to sign in with Firebase Authentication
+                user = auth.sign_in_with_email_and_password(user_data['email'], password)
+                user_id = user['localId']
+                
+                session['user'] = user_data
+                session['user_id'] = user_id
                 flash('Login successful', 'success')
                 return redirect(url_for('dashboard'))
-            elif 'username' in user.val() and user.val()['username'] == username and user.val()['password'] == password:
-                session['user'] = user.val()
-                flash('Login successful', 'success')
-                return redirect(url_for('dashboard'))
-        
-        flash('Invalid credentials', 'error')
+            else:
+                flash('User not found', 'error')
+        except Exception as e:
+            print(f"Login error: {str(e)}")  # Debug print
+            flash('Invalid credentials', 'error')
     return render_template('login.html')
 
 @app.route('/dashboard')
@@ -112,35 +163,61 @@ def dashboard():
 def my_courses():
     if 'user' not in session:
         return redirect(url_for('login'))
-    # Fetch user's courses from the database
-    # For now, we'll use dummy data
-    courses = [
-        {"id": 1, "title": "Python Basics", "summary": "Learn Python fundamentals"},
-        {"id": 2, "title": "Web Development", "summary": "Build responsive websites"}
-    ]
+
+    user_id = session['user_id']
+    student_ref = db.collection('student_details').document(user_id)
+    student_doc = student_ref.get()
+
+    if student_doc.exists:
+        purchased_course_ids = student_doc.to_dict().get('purchased_courses', [])
+        courses = []
+        for course_id in purchased_course_ids:
+            course_doc = db.collection('course_details').document(course_id).get()
+            if course_doc.exists:
+                course = course_doc.to_dict()
+                course['id'] = course_doc.id
+                courses.append(course)
+    else:
+        courses = []
+
     return render_template('my_courses.html', courses=courses)
 
-@app.route('/browse_courses')
-def browse_courses():
-    # Fetch all courses from the database
-    # For now, we'll use dummy data
-    courses = [
-        {"id": 1, "title": "Python Basics", "summary": "Learn Python fundamentals", "sample_videos": ["intro.mp4", "variables.mp4"]},
-        {"id": 2, "title": "Web Development", "summary": "Build responsive websites", "sample_videos": ["html_basics.mp4", "css_intro.mp4"]},
-        {"id": 3, "title": "Data Science", "summary": "Analyze and visualize data", "sample_videos": ["pandas_intro.mp4", "matplotlib_basics.mp4"]}
-    ]
-    return render_template('browse_courses.html', courses=courses)
+@app.route('/course/<course_id>')
+def course_details(course_id):
+    course_doc = db.collection('course_details').document(course_id).get()
+    if course_doc.exists:
+        course = course_doc.to_dict()
+        course['id'] = course_doc.id
+        return render_template('course_details.html', course=course)
+    else:
+        flash('Course not found', 'error')
+        return redirect(url_for('home'))
 
 @app.route('/my_reviews')
 def my_reviews():
     if 'user' not in session:
         return redirect(url_for('login'))
-    # Fetch user's reviews from the database
-    # For now, we'll use dummy data
-    reviews = [
-        {"course_id": 1, "course_title": "Python Basics", "rating": 4.5},
-        {"course_id": 2, "course_title": "Web Development", "rating": 5}
-    ]
+    
+    user_id = session['user_id']
+    student_ref = db.collection('student_details').document(user_id)
+    student_doc = student_ref.get()
+
+    if student_doc.exists:
+        purchased_course_ids = student_doc.to_dict().get('purchased_courses', [])
+        reviews = []
+        for course_id in purchased_course_ids:
+            course_doc = db.collection('course_details').document(course_id).get()
+            if course_doc.exists:
+                course = course_doc.to_dict()
+                course['id'] = course_doc.id
+                reviews.append({
+                    'course_id': course['id'],
+                    'course_title': course['course_name'],
+                    'rating': 4.5  # Replace with actual rating
+                })
+    else:
+        reviews = []
+
     return render_template('my_reviews.html', reviews=reviews)
 
 @app.route('/profile')
@@ -159,16 +236,31 @@ def logout():
 def forgot_password():
     if request.method == 'POST':
         email = request.form['email']
-        users = db.child("users").get()
-        for user in users.each():
-            if user.val()['email'] == email:
-                # Here you would send an email with the username and password
-                flash('Password reset instructions sent to your email', 'success')
-                return redirect(url_for('login'))
+        users = db.collection('users').where('email_id', '==', email).stream()
+        for user in users:
+            # Here you would send an email with the username and password
+            flash('Password reset instructions sent to your email', 'success')
+            return redirect(url_for('login'))
         flash('Email not found. Please enter the correct email or register.', 'error')
     return render_template('forgot_password.html')
 
-@app.route('/rate_course/<int:course_id>', methods=['GET', 'POST'])
+@app.route('/purchase_course/<course_id>', methods=['POST'])
+def purchase_course(course_id):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    
+    # Add course to student_details collection
+    student_ref = db.collection('student_details').document(user_id)
+    student_ref.update({
+        'purchased_courses': firestore.ArrayUnion([course_id])
+    })
+
+    flash('Course purchased successfully!', 'success')
+    return redirect(url_for('my_courses'))
+
+@app.route('/rate_course/<course_id>', methods=['GET', 'POST'])
 def rate_course(course_id):
     if 'user' not in session:
         return redirect(url_for('login'))

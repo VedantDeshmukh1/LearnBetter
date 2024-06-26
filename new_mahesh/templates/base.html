@@ -11,7 +11,14 @@
         <ul>
             <li><a href="{{ url_for('home') }}">Home</a></li>
             {% if 'user' in session %}
-                <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="dropdown">
+                    <a href="#" class="dropbtn">Dashboard</a>
+                    <div class="dropdown-content">
+                        <a href="{{ url_for('my_courses') }}">My Courses</a>
+                        <a href="{{ url_for('my_reviews') }}">My Reviews</a>
+                        <a href="{{ url_for('profile') }}">My Profile</a>
+                    </div>
+                </li>
                 <li><a href="{{ url_for('logout') }}">Logout</a></li>
             {% else %}
                 <li><a href="{{ url_for('register') }}">Register</a></li>
