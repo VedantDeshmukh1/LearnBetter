@@ -40,6 +40,9 @@ def generate_password():
     password_list = list(password)
     random.shuffle(password_list)
     return ''.join(password_list)
+##############################################################################
+#                  Student Related
+##############################################################################
 
 @app.route('/')
 def home():
@@ -279,6 +282,237 @@ def rate_course(course_id):
         flash('Thank you for rating the course!', 'success')
         return redirect(url_for('my_courses'))
     return render_template('rate_course.html', course_id=course_id)
+##############################################################################
+#                  Teacher Related
+##############################################################################
+@app.route('/teacher_register', methods=['GET', 'POST'])
+def teacher_register():
+    if request.method == 'POST':
+        first_name = request.form['first_name']
+        last_name = request.form['last_name']
+        email = request.form['email']
+        
+        if len(first_name) < 2 or len(last_name) < 2:
+            flash('First name and last name must be at least 2 characters long', 'error')
+            return render_template('teacher_register.html')
+        
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            flash('Invalid email address', 'error')
+            return render_template('teacher_register.html')
+        
+        username = generate_username(first_name, last_name, email)
+        password = generate_password()
+        
+        try:
+            user = auth.create_user_with_email_and_password(email, password)
+            user_id = user['localId']
+            
+            # Add user to Realtime Database
+            user_data_rdb = {
+                "email": email,
+                "username": username,
+                "password": password,
+                "first_name": first_name,
+                "last_name": last_name,
+                "role": "teacher"
+            }
+            rdb.child("users").child(user_id).set(user_data_rdb)
+            
+            # Add user to Firestore
+            user_data_firestore = {
+                'user_id': user_id,
+                'email_id': email,
+                'name': f"{first_name} {last_name}",
+                'role': 'teacher',
+                'courses': []
+            }
+            db.collection('users').document(user_id).set(user_data_firestore)
+            
+            auth.send_email_verification(user['idToken'])
+            flash('Registration successful. Check your email for login credentials.', 'success')
+            return redirect(url_for('teacher_login'))
+        except Exception as e:
+            print(f"Registration error: {str(e)}")
+            flash('Registration failed', 'error')
+    return render_template('teacher_register.html')
+
+@app.route('/teacher_login', methods=['GET', 'POST'])
+def teacher_login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        try:
+            users = rdb.child("users").get()
+            user_data = None
+            for user in users.each():
+                if user.val()['username'] == username and user.val()['role'] == 'teacher':
+                    user_data = user.val()
+                    break
+            
+            if user_data:
+                user = auth.sign_in_with_email_and_password(user_data['email'], password)
+                user_id = user['localId']
+                
+                session['user'] = user_data
+                session['user_id'] = user_id
+                flash('Login successful', 'success')
+                return redirect(url_for('teacher_dashboard'))
+            else:
+                flash('User not found or not a teacher', 'error')
+        except Exception as e:
+            print(f"Login error: {str(e)}")
+            flash('Invalid credentials', 'error')
+    return render_template('teacher_login.html')
+
+@app.route('/teacher_dashboard')
+def teacher_dashboard():
+    if 'user' not in session or session['user']['role'] != 'teacher':
+        return redirect(url_for('teacher_login'))
+    
+    user_id = session['user_id']
+    courses = []
+    course_docs = db.collection('course_details').where('course_instructor_id', '==', user_id).stream()
+    for doc in course_docs:
+        course = doc.to_dict()
+        course['id'] = doc.id
+        courses.append(course)
+    
+    return render_template('teacher_dashboard.html', user=session['user'], courses=courses)
+
+@app.route('/add_course', methods=['GET', 'POST'])
+def add_course():
+    if 'user' not in session or session['user']['role'] != 'teacher':
+        return redirect(url_for('teacher_login'))
+    
+    if request.method == 'POST':
+        course_name = request.form['course_name']
+        course_duration = int(request.form['course_duration'])
+        
+        course_data = {
+            'course_name': course_name,
+            'course_duration': course_duration,
+            'course_instructor': f"{session['user']['first_name']} {session['user']['last_name']}",
+            'course_instructor_id': session['user_id'],
+            'videos': {}
+        }
+        
+        # Add course to Firestore
+        course_ref = db.collection('course_details').add(course_data)
+        course_id = course_ref[1].id
+        
+        # Update user's courses in Firestore
+        user_ref = db.collection('users').document(session['user_id'])
+        user_ref.update({
+            'courses': firestore.ArrayUnion([course_id])
+        })
+        
+        flash('Course added successfully', 'success')
+        return redirect(url_for('teacher_dashboard'))
+    
+    return render_template('add_course.html')
+
+@app.route('/add_video/<course_id>', methods=['GET', 'POST'])
+def add_video(course_id):
+    if 'user' not in session or session['user']['role'] != 'teacher':
+        return redirect(url_for('teacher_login'))
+    
+    if request.method == 'POST':
+        video_title = request.form['video_title']
+        video_duration = int(request.form['video_duration'])
+        video_url = request.form['video_url']
+        
+        video_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
+        
+        video_data = {
+            'title': video_title,
+            'duration': video_duration,
+            'url': video_url
+        }
+        
+        # Update course with new video
+        course_ref = db.collection('course_details').document(course_id)
+        course_ref.update({
+            f'videos.{video_id}': video_data
+        })
+        
+        flash('Video added successfully', 'success')
+        return redirect(url_for('teacher_dashboard'))
+    
+    return render_template('add_video.html', course_id=course_id)
+
+@app.route('/edit_course/<course_id>', methods=['GET', 'POST'])
+def edit_course(course_id):
+    if 'user' not in session or session['user']['role'] != 'teacher':
+        return redirect(url_for('teacher_login'))
+    
+    course_ref = db.collection('course_details').document(course_id)
+    course = course_ref.get().to_dict()
+    course['id'] = course_id
+
+    if request.method == 'POST':
+        course_name = request.form['course_name']
+        course_duration = int(request.form['course_duration'])
+        
+        course_ref.update({
+            'course_name': course_name,
+            'course_duration': course_duration
+        })
+        
+        flash('Course updated successfully', 'success')
+        return redirect(url_for('teacher_dashboard'))
+    
+    return render_template('edit_course.html', course=course)
+
+@app.route('/view_course/<course_id>')
+def view_course(course_id):
+    if 'user' not in session or session['user']['role'] != 'teacher':
+        return redirect(url_for('teacher_login'))
+    
+    course_ref = db.collection('course_details').document(course_id)
+    course = course_ref.get().to_dict()
+    course['id'] = course_id
+
+    return render_template('view_course.html', course=course)
+
+@app.route('/edit_video/<course_id>/<video_id>', methods=['GET', 'POST'])
+def edit_video(course_id, video_id):
+    if 'user' not in session or session['user']['role'] != 'teacher':
+        return redirect(url_for('teacher_login'))
+    
+    course_ref = db.collection('course_details').document(course_id)
+    course = course_ref.get().to_dict()
+    video = course['videos'][video_id]
+
+    if request.method == 'POST':
+        video_title = request.form['video_title']
+        video_duration = int(request.form['video_duration'])
+        video_url = request.form['video_url']
+        
+        course_ref.update({
+            f'videos.{video_id}.title': video_title,
+            f'videos.{video_id}.duration': video_duration,
+            f'videos.{video_id}.url': video_url
+        })
+        
+        flash('Video updated successfully', 'success')
+        return redirect(url_for('edit_course', course_id=course_id))
+    
+    return render_template('edit_video.html', course_id=course_id, video_id=video_id, video=video)
+
+@app.route('/delete_video/<course_id>/<video_id>')
+def delete_video(course_id, video_id):
+    if 'user' not in session or session['user']['role'] != 'teacher':
+        return redirect(url_for('teacher_login'))
+    
+    course_ref = db.collection('course_details').document(course_id)
+    course_ref.update({
+        f'videos.{video_id}': firestore.DELETE_FIELD
+    })
+    
+    flash('Video deleted successfully', 'success')
+    return redirect(url_for('edit_course', course_id=course_id))
+
 
 if __name__ == '__main__':
     app.run(debug=True)

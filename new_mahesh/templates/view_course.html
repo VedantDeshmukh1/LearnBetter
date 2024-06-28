@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ course.course_name }}</h2>
+<p>Duration: {{ course.course_duration }} hours</p>
+<h3>Videos:</h3>
+<ul>
+{% for video_id, video in course.videos.items() %}
+    <li>
+        {{ video.title }} ({{ video.duration }} minutes)
+        <a href="{{ video.url }}" target="_blank">Watch</a>
+    </li>
+{% endfor %}
+</ul>
+<a href="{{ url_for('teacher_dashboard') }}">Back to Dashboard</a>
+{% endblock %}

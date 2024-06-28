@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Add Video to Course</h2>
+<form method="POST">
+    <input type="text" name="video_title" placeholder="Video Title" required>
+    <input type="number" name="video_duration" placeholder="Video Duration (minutes)" required>
+    <input type="url" name="video_url" placeholder="Video URL" required>
+    <input type="submit" value="Add Video">
+</form>
+<a href="{{ url_for('teacher_dashboard') }}">Back to Dashboard</a>
+{% endblock %}
