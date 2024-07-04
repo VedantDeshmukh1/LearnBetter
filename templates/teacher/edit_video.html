@@ -1,0 +1,11 @@
+{% extends "teacher/base_teacher.html" %}
+{% block content %}
+<h2>Edit Video</h2>
+<form method="POST">
+    <input type="text" name="video_title" value="{{ video.title }}" required>
+    <input type="number" name="video_duration" value="{{ video.duration }}" required>
+    <input type="url" name="video_url" value="{{ video.url }}" required>
+    <input type="submit" value="Update Video">
+</form>
+<a href="{{ url_for('teacher.edit_course', course_id=course_id) }}">Back to Course</a>
+{% endblock %}

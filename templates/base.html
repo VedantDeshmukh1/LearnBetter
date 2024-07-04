@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Magpie Learning{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="{{ url_for('student.home') }}">Home</a></li>
+            {% if 'user' in session %}
+                {% if session['user']['role'] == 'student' %}
+                    <li><a href="{{ url_for('student.my_courses') }}">My Courses</a></li>
+                    <li><a href="{{ url_for('student.my_reviews') }}">My Reviews</a></li>
+                    <li><a href="{{ url_for('student.profile') }}">My Profile</a></li>
+                    <li><a href="{{ url_for('student.logout') }}">Logout</a></li>
+                {% elif session['user']['role'] == 'teacher' %}
+                    <li><a href="{{ url_for('teacher.dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ url_for('teacher.profile') }}">My Profile</a></li>
+                    <li><a href="{{ url_for('teacher.logout') }}">Logout</a></li>
+                {% endif %}
+            {% else %}
+                <li><a href="{{ url_for('student.register') }}">Register</a></li>
+                <li><a href="{{ url_for('student.login') }}">Login</a></li>
+                <li><a href="{{ url_for('teacher.login') }}">Teacher Login</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2023 Magpie Learning. All rights reserved.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

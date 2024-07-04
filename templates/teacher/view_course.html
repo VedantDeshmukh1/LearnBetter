@@ -1,0 +1,25 @@
+{% extends "teacher/base_teacher.html" %}
+{% block content %}
+<h2>{{ course.course_name }}</h2>
+<p>Duration: {{ course.course_duration }} hours</p>
+<p>Price: ${{ course.course_price }}</p>
+<p>Total Enrollments: {{ course.total_enrollments }}</p>
+<p>Total Revenue: ${{ course.total_revenue }}</p>
+<p>Average Rating: {{ course.average_rating|round(2) }} ({{ course.total_ratings }} ratings)</p>
+
+<h3>Videos:</h3>
+<ul>
+{% for video_id, video in course.videos.items() %}
+    <li>
+        {{ video.title }} ({{ video.duration }} minutes)
+        <a href="{{ video.url }}" target="_blank">Watch</a>
+        <a href="{{ url_for('teacher.edit_video', course_id=course.id, video_id=video_id) }}">Edit</a>
+        <a href="{{ url_for('teacher.delete_video', course_id=course.id, video_id=video_id) }}" onclick="return confirm('Are you sure you want to delete this video?');">Delete</a>
+    </li>
+{% endfor %}
+</ul>
+
+<a href="{{ url_for('teacher.add_video', course_id=course.id) }}" class="btn btn-primary">Add New Video</a>
+<a href="{{ url_for('teacher.edit_course', course_id=course.id) }}" class="btn btn-secondary">Edit Course</a>
+<a href="{{ url_for('teacher.dashboard') }}" class="btn btn-link">Back to Dashboard</a>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "teacher/base_teacher.html" %}
+
+{% block content %}
+<h1>Teacher Dashboard</h1>
+<p>Welcome, {{ user.first_name }} {{ user.last_name }}!</p>
+
+<h2>Analytics</h2>
+<ul>
+    <li>Total Courses: {{ analytics.total_courses }}</li>
+    <li>Total Enrollments: {{ analytics.total_enrollments }}</li>
+    <li>Total Revenue: ${{ analytics.total_revenue }}</li>
+    <li>Average Rating: {{ analytics.average_rating|round(2) }}</li>
+</ul>
+
+<h2>Your Courses</h2>
+<ul>
+{% for course in courses %}
+    <li>
+        {{ course.course_name }}
+        <a href="{{ url_for('teacher.edit_course', course_id=course.id) }}">Edit</a>
+        <a href="{{ url_for('teacher.view_course', course_id=course.id) }}">View</a>
+    </li>
+{% endfor %}
+</ul>
+
+<a href="{{ url_for('teacher.add_course') }}" class="btn">Add New Course</a>
+{% endblock %}

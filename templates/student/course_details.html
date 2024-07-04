@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ course.course_name }} - Magpie Learning</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            overflow: hidden;
+            padding: 20px;
+        }
+        .course-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            gap: 2rem;
+        }
+        .course-details-card, .video-container {
+            flex: 1;
+            min-width: 0;
+        }
+        .course-details-card {
+            padding: 1.5rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background-color: #fff;
+        }
+        .course-details-card h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        .video-container {
+            aspect-ratio: 16 / 9;
+            max-height: 400px;
+        }
+        #video-player {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+        }
+        .video-list {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+        .video-list h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .video-grid {
+            display: flex;
+            overflow-x: auto;
+            gap: 1rem;
+            padding-bottom: 1rem;
+        }
+        .video-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: box-shadow 0.3s ease;
+            flex: 0 0 auto;
+            width: 200px;
+        }
+        .video-item:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .video-thumbnail {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
+        }
+        .video-info {
+            padding: 1rem;
+        }
+        .video-info h3 {
+            margin-top: 0;
+            font-size: 1rem;
+            color: #333;
+        }
+        .video-description {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        nav {
+            background-color: #333;
+            color: #fff;
+            padding: 1rem;
+        }
+        nav ul {
+            padding: 0;
+            list-style: none;
+            display: flex;
+            justify-content: space-around;
+        }
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+        }
+        .alert {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        footer {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 1rem;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="{{ url_for('student.home') }}">Home</a></li>
+            {% if 'user' in session %}
+                <li><a href="{{ url_for('student.my_courses') }}">My Courses</a></li>
+                <li><a href="{{ url_for('student.my_reviews') }}">My Reviews</a></li>
+                <li><a href="{{ url_for('student.profile') }}">My Profile</a></li>
+                <li><a href="{{ url_for('student.logout') }}">Logout</a></li>
+            {% else %}
+                <li><a href="{{ url_for('student.register') }}">Register</a></li>
+                <li><a href="{{ url_for('student.login') }}">Login</a></li>
+                <li><a href="{{ url_for('teacher.login') }}">Teacher Login</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <div class="container">
+        <div class="course-container">
+            <!-- Course details card -->
+            <div class="course-details-card">
+                <h1>{{ course.course_name }}</h1>
+                <p><strong>Instructor:</strong> {{ course.course_instructor }}</p>
+                <p><strong>Duration:</strong> {{ course.course_duration }} hours</p>
+                <p>{{ course.course_description }}</p>
+
+                {% if 'user' in session %}
+                    <form action="{{ url_for('student.purchase_course', course_id=course.id) }}" method="POST">
+                        <button type="submit" class="btn btn-primary">Purchase Course</button>
+                    </form>
+                {% else %}
+                    <a href="{{ url_for('student.login') }}" class="btn btn-secondary">Login to Purchase</a>
+                {% endif %}
+            </div>
+
+            <!-- Video player -->
+            <div class="video-container">
+                <iframe id="video-player" src="{{ (course.videos.values()|list)[0].url }}" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+            </div>
+        </div>
+
+        <!-- Video list -->
+        <div class="video-list">
+            <h2>Course Videos</h2>
+            <div class="video-grid">
+                {% for video in course.videos.values() %}
+                    <div class="video-item">
+                        <img src="{{ video.thumbnail }}" alt="{{ video.title }} thumbnail" class="video-thumbnail">
+                        <div class="video-info">
+                            <h3>{{ video.title }}</h3>
+                            <p><strong>Duration:</strong> {{ video.duration }} minutes</p>
+                            <p class="video-description">{{ video.description }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

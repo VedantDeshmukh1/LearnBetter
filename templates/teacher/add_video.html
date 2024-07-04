@@ -1,0 +1,23 @@
+{% extends "teacher/base_teacher.html" %}
+{% block content %}
+<h1>Add Video</h1>
+<form method="POST">
+    <label for="video_title">Video Title:</label>
+    <input type="text" id="video_title" name="video_title" required><br>
+
+    <label for="video_duration">Video Duration (in minutes):</label>
+    <input type="number" id="video_duration" name="video_duration" required><br>
+
+    <label for="video_url">Video URL:</label>
+    <input type="url" id="video_url" name="video_url" required><br>
+
+    <label for="video_description">Video Description:</label>
+    <textarea id="video_description" name="video_description" required></textarea><br>
+
+    <label for="video_thumbnail">Video Thumbnail URL:</label>
+    <input type="url" id="video_thumbnail" name="video_thumbnail" required><br>
+
+    <input type="submit" value="Add Video">
+</form>
+<a href="{{ url_for('teacher.edit_course', course_id=course_id) }}">Back to Course</a>
+{% endblock %}
