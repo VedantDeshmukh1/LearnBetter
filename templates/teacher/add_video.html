@@ -1,7 +1,7 @@
 {% extends "teacher/base_teacher.html" %}
 {% block content %}
 <h1>Add Video</h1>
-<form method="POST">
+<form method="POST" enctype="multipart/form-data">
     <label for="video_title">Video Title:</label>
     <input type="text" id="video_title" name="video_title" required><br>
 
@@ -16,6 +16,10 @@
 
     <label for="video_thumbnail">Video Thumbnail URL:</label>
     <input type="url" id="video_thumbnail" name="video_thumbnail" required><br>
+    <div class="form-group">
+        <label for="video_file">Video File</label>
+        <input type="file" class="form-control-file" id="video_file" name="video_file" accept="video/*" required>
+    </div>
 
     <input type="submit" value="Add Video">
 </form>

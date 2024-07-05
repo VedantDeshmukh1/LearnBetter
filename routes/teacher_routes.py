@@ -2,9 +2,10 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from firebase_admin import firestore
 import random
 import string
-from config import db, rdb, auth
+from config import db, rdb, auth , bucket
 from utils import generate_video_id, validate_name
-
+from werkzeug.utils import secure_filename
+import os
 bp = Blueprint('teacher', __name__, url_prefix='/teacher')
 
 @bp.route('/login', methods=['GET', 'POST'])
@@ -158,12 +159,36 @@ def add_video(course_id):
     if request.method == 'POST':
         video_title = request.form['video_title']
         video_duration = int(request.form['video_duration'])
-        video_url = request.form['video_url']
         video_description = request.form['video_description']
         video_thumbnail = request.form['video_thumbnail']
         
         if not validate_name(video_title):
             flash('Video title must be at least 2 characters long', 'error')
+            return render_template('teacher/add_video.html', course_id=course_id)
+        
+        # Handle file upload
+        video_file = request.files['video_file']
+        if video_file:
+            filename = secure_filename(video_file.filename)
+            file_extension = os.path.splitext(filename)[1]
+            
+            # Generate a unique filename
+            unique_filename = f"{course_id}_{generate_video_id()}{file_extension}"
+            
+            # Upload file to Firebase Storage
+            blob = bucket.blob(f"course_videos/{unique_filename}")
+            blob.upload_from_string(
+                video_file.read(),
+                content_type=video_file.content_type
+            )
+            
+            # Make the blob publicly accessible
+            blob.make_public()
+            
+            # Get the public URL
+            video_url = blob.public_url
+        else:
+            flash('No video file uploaded', 'error')
             return render_template('teacher/add_video.html', course_id=course_id)
         
         video_id = generate_video_id()
@@ -199,13 +224,42 @@ def edit_video(course_id, video_id):
     if request.method == 'POST':
         video_title = request.form['video_title']
         video_duration = int(request.form['video_duration'])
-        video_url = request.form['video_url']
         video_description = request.form['video_description']
         video_thumbnail = request.form['video_thumbnail']
         
         if not validate_name(video_title):
             flash('Video title must be at least 2 characters long', 'error')
             return render_template('teacher/edit_video.html', course_id=course_id, video_id=video_id, video=video)
+        
+        # Handle file upload
+        video_file = request.files['video_file']
+        if video_file:
+            # Delete the old video file from Firebase Storage
+            old_video_url = video['url']
+            if old_video_url:
+                old_blob = bucket.blob(old_video_url.split('/')[-1])
+                old_blob.delete()
+
+            filename = secure_filename(video_file.filename)
+            file_extension = os.path.splitext(filename)[1]
+            
+            # Generate a unique filename
+            unique_filename = f"{course_id}_{video_id}{file_extension}"
+            
+            # Upload new file to Firebase Storage
+            blob = bucket.blob(f"course_videos/{unique_filename}")
+            blob.upload_from_string(
+                video_file.read(),
+                content_type=video_file.content_type
+            )
+            
+            # Make the blob publicly accessible
+            blob.make_public()
+            
+            # Get the public URL
+            video_url = blob.public_url
+        else:
+            video_url = video['url']
         
         course_ref.update({
             f'videos.{video_id}.title': video_title,
@@ -226,6 +280,21 @@ def delete_video(course_id, video_id):
         return redirect(url_for('teacher.login'))
     
     course_ref = db.collection('course_details').document(course_id)
+    course = course_ref.get().to_dict()
+    video = course['videos'][video_id]
+    
+    # Delete the video file from Firebase Storage
+    video_url = video.get('url')
+    if video_url:
+        try:
+            # Extract the blob name from the URL
+            blob_name = video_url.split('/')[-1]
+            blob = bucket.blob(f"course_videos/{blob_name}")
+            blob.delete()
+        except Exception as e:
+            print(f"Error deleting video file: {str(e)}")
+    
+    # Remove the video from the course document
     course_ref.update({
         f'videos.{video_id}': firestore.DELETE_FIELD
     })

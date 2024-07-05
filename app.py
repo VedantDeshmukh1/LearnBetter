@@ -1,5 +1,5 @@
 from flask import Flask, redirect, url_for
-from config import db, rdb, auth
+from config import db, rdb, auth , bucket
 import os
 from routes import student_routes, teacher_routes
 
