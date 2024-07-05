@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ course.course_name }} - Video Player</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .video-player-container {
+            display: flex;
+            flex-direction: row;
+            height: calc(100vh - 60px); /* Adjust based on your header height */
+            background-color: #f9f9f9;
+        }
+        .video-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        .video-container {
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            position: relative;
+        }
+        #video-player {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .video-info {
+            margin-top: 20px;
+        }
+        .video-list {
+            width: 350px;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #fff;
+            border-left: 1px solid #e0e0e0;
+        }
+        .video-item {
+            cursor: pointer;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .video-item:hover {
+            background-color: #f0f0f0;
+        }
+        .video-item.active {
+            background-color: #e0e0e0;
+            font-weight: bold;
+        }
+        .video-item h3 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+        }
+        .video-item p {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-player-container">
+        <div class="video-main">
+            <div class="video-container">
+                <iframe id="video-player" src="{{ current_video.url }}" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+            </div>
+            <div class="video-info">
+                <h1>{{ current_video.title }}</h1>
+                <p>{{ course.course_name }}</p>
+            </div>
+        </div>
+        <div class="video-list">
+            <h2>Course Videos</h2>
+            {% for video in course.videos.values() %}
+                <div class="video-item {% if video.id == current_video.id %}active{% endif %}" data-video-id="{{ video.id }}">
+                    <h3>{{ video.title }}</h3>
+                    <p>{{ video.duration }} minutes</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        const videoItems = document.querySelectorAll('.video-item');
+        const videoPlayer = document.getElementById('video-player');
+        let currentVideoId = '{{ current_video.id }}';
+        let courseId = '{{ course.id }}';
+
+        function updateVideoSrc(videoId, timestamp = 0) {
+            let videoUrl = '{{ current_video.url }}';
+            videoUrl = videoUrl.split('?')[0]; // Remove any existing parameters
+            videoPlayer.src = `${videoUrl}?t=${Math.floor(timestamp)}s`;
+        }
+
+        function saveVideoProgress(videoId, currentTime) {
+            fetch('/student/save_video_progress', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    video_id: videoId,
+                    current_time: currentTime,
+                    course_id: courseId
+                }),
+            })
+            .then(response => response.json())
+            .then(data => console.log('Progress saved:', data))
+            .catch((error) => console.error('Error:', error));
+        }
+
+        videoItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const videoId = item.getAttribute('data-video-id');
+                fetch(`/student/update_video_progress/${videoId}?course_id=${courseId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        updateVideoSrc(videoId, data.timestamp);
+                        currentVideoId = videoId;
+                        videoItems.forEach(v => v.classList.remove('active'));
+                        item.classList.add('active');
+                    });
+            });
+        });
+
+        // Save video progress every 5 seconds
+        setInterval(() => {
+            const currentTime = videoPlayer.contentWindow.postMessage({ type: 'getCurrentTime' }, '*');
+            window.addEventListener('message', function(event) {
+                if (event.data.type === 'currentTime') {
+                    saveVideoProgress(currentVideoId, event.data.time);
+                }
+            });
+        }, 5000);
+
+        // Load initial video with saved timestamp
+        fetch(`/student/get_video_progress/${currentVideoId}?course_id=${courseId}`)
+            .then(response => response.json())
+            .then(data => {
+                updateVideoSrc(currentVideoId, data.timestamp);
+            });
+    </script>
+</body>
+</html>
