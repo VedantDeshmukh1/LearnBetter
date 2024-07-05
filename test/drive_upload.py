@@ -3,11 +3,15 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 import json
+from refresh_token import refresh_access_token
 
 def upload_basic():
     """Insert new file.
     Returns : Id of the file uploaded
     """
+    # Refresh the token before uploading
+    refresh_access_token()
+
     # Load credentials from the file
     with open('credentials.json', 'r') as cred_file:
         cred_data = json.load(cred_file)
