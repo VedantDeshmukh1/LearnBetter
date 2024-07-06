@@ -15,15 +15,37 @@
 </form>
 
 <h3>Videos:</h3>
-<ul>
+<ul id="video-list" class="list-group">
 {% for video_id, video in course.videos.items() %}
-    <li>
+    <li class="list-group-item" data-id="{{ video_id }}">
+        <span class="handle">☰</span>
         {{ video.title }} ({{ video.duration }} minutes)
-        <a href="{{ url_for('teacher.edit_video', course_id=course.id, video_id=video_id) }}">Edit</a>
-        <a href="{{ url_for('teacher.delete_video', course_id=course.id, video_id=video_id) }}">Delete</a>
+        <a href="{{ url_for('teacher.edit_video', course_id=course.id, video_id=video_id) }}" class="btn btn-sm btn-primary">Edit</a>
+        <a href="{{ url_for('teacher.delete_video', course_id=course.id, video_id=video_id) }}" class="btn btn-sm btn-danger">Delete</a>
     </li>
 {% endfor %}
 </ul>
-<a href="{{ url_for('teacher.add_video', course_id=course.id) }}">Add New Video</a>
-<a href="{{ url_for('teacher.dashboard') }}">Back to Dashboard</a>
+<a href="{{ url_for('teacher.add_video', course_id=course.id) }}" class="btn btn-success mt-3">Add New Video</a>
+<a href="{{ url_for('teacher.dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
+
+<form id="reorder-form" method="POST">
+    <input type="hidden" name="video_order" id="video-order">
+    <button type="submit" class="btn btn-primary mt-3">Save Video Order</button>
+</form>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var el = document.getElementById('video-list');
+    var sortable = Sortable.create(el, {
+        handle: '.handle',
+        animation: 150,
+    });
+
+    document.getElementById('reorder-form').addEventListener('submit', function(e) {
+        var videoOrder = sortable.toArray();
+        document.getElementById('video-order').value = videoOrder.join(',');
+    });
+});
+</script>
 {% endblock %}

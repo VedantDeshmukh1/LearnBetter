@@ -125,18 +125,26 @@ def edit_course(course_id):
     course['id'] = course_id
 
     if request.method == 'POST':
-        course_name = request.form['course_name']
-        course_duration = int(request.form['course_duration'])
-        course_price = float(request.form['course_price'])
-        
-        course_ref.update({
-            'course_name': course_name,
-            'course_duration': course_duration,
-            'course_price': course_price
-        })
-        
-        flash('Course updated successfully', 'success')
-        return redirect(url_for('teacher.dashboard'))
+        if 'video_order' in request.form:
+            video_order = request.form.get('video_order').split(',')
+            videos = course['videos']
+            ordered_videos = {video_id: videos[video_id] for video_id in video_order if video_id in videos}
+            course_ref.update({'videos': ordered_videos})
+            flash('Video order updated successfully', 'success')
+            return redirect(url_for('teacher.edit_course', course_id=course_id))
+        else:
+            course_name = request.form['course_name']
+            course_duration = int(request.form['course_duration'])
+            course_price = float(request.form['course_price'])
+            
+            course_ref.update({
+                'course_name': course_name,
+                'course_duration': course_duration,
+                'course_price': course_price
+            })
+            
+            flash('Course updated successfully', 'success')
+            return redirect(url_for('teacher.dashboard'))
     
     return render_template('teacher/edit_course.html', course=course)
 
@@ -148,6 +156,10 @@ def view_course(course_id):
     course_ref = db.collection('course_details').document(course_id)
     course = course_ref.get().to_dict()
     course['id'] = course_id
+
+    # Sort videos based on their order in the dictionary
+    sorted_videos = sorted(course['videos'].items(), key=lambda x: list(course['videos'].keys()).index(x[0]))
+    course['sorted_videos'] = dict(sorted_videos)
 
     return render_template('teacher/view_course.html', course=course)
 
@@ -211,6 +223,24 @@ def add_video(course_id):
         return redirect(url_for('teacher.edit_course', course_id=course_id))
     
     return render_template('teacher/add_video.html', course_id=course_id)
+@bp.route('/reorder_videos/<course_id>', methods=['POST'])
+def reorder_videos(course_id):
+    if 'user' not in session or session['user']['role'] != 'teacher':
+        return redirect(url_for('teacher.login'))
+    
+    video_order = request.form.get('video_order').split(',')
+    
+    course_ref = db.collection('course_details').document(course_id)
+    course = course_ref.get().to_dict()
+    
+    videos = course['videos']
+    ordered_videos = {video_id: videos[video_id] for video_id in video_order if video_id in videos}
+    
+    # Update the course document with the new video order
+    course_ref.update({'videos': ordered_videos})
+    
+    flash('Video order updated successfully', 'success')
+    return redirect(url_for('teacher.view_course', course_id=course_id))
 
 @bp.route('/edit_video/<course_id>/<video_id>', methods=['GET', 'POST'])
 def edit_video(course_id, video_id):
