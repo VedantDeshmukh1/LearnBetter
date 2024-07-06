@@ -20,8 +20,8 @@ def upload_basic():
         token=cred_data['access_token'],
         refresh_token=cred_data['refresh_token'],
         token_uri="https://oauth2.googleapis.com/token",
-        client_id=None,  # Not needed when using refresh token
-        client_secret=None,  # Not needed when using refresh token
+        client_id=cred_data.get('client_id'),  # Pass client_id from credentials
+        client_secret=cred_data.get('client_secret'),  # Pass client_secret from credentials
         scopes=[cred_data['scope']]
     )
 
@@ -34,18 +34,22 @@ def upload_basic():
         folder_id = get_or_create_folder(service, folder_name)
 
         file_metadata = {
-            "name": "NucNwORbPWmQk1WPmt6w_p5ivgke20x.mp4",
+            "name": "kanishk_arya_assignment_submission.mov",
             "parents": [folder_id]  # Use the "test" folder ID
         }
-        media = MediaFileUpload("NucNwORbPWmQk1WPmt6w_p5ivgke20x.mp4", mimetype="video/mp4")
+        media = MediaFileUpload("kanishk_arya_assignment_submission.mov", mimetype="video/mov")
         
         file = service.files().create(
             body=file_metadata, 
             media_body=media, 
-            fields="id"
+            fields="id, webViewLink" # Request webViewLink field
         ).execute()
         
         print(f'File ID: {file.get("id")}')
+        sharing_link = file.get("webViewLink")
+        modified_link = sharing_link.replace("/view?usp=drivesdk", "/preview?")
+        print(f'Sharing Link: {sharing_link}')
+        print(f'Modified Sharing Link: {modified_link}')
         return file.get("id")
 
     except HttpError as error:

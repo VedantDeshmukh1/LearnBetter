@@ -12,6 +12,8 @@ def refresh_access_token():
         token=cred_data['access_token'],
         refresh_token=cred_data['refresh_token'],
         token_uri="https://oauth2.googleapis.com/token",
+        client_id=cred_data.get('client_id'),  # Add these if you have them
+        client_secret=cred_data.get('client_secret'),  # Add these if you have them
         scopes=[cred_data['scope']]
     )
 
@@ -21,12 +23,7 @@ def refresh_access_token():
 
     # Update the credentials file with the new access token
     cred_data['access_token'] = creds.token
-    cred_data['expires_in'] = creds.expiry.timestamp() - creds.token_response['expires_in']
-
     with open('credentials.json', 'w') as file:
         json.dump(cred_data, file, indent=2)
 
     print("Access token refreshed and updated in credentials.json")
-
-if __name__ == "__main__":
-    refresh_access_token()
