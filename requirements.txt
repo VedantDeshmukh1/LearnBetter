@@ -2,3 +2,8 @@ flask
 firebase_admin
 pyrebase4
 pycryptodome
+opencv-python
+moviepy
+pillow
+google-auth-oauthlib 
+google-api-python-client

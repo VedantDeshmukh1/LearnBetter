@@ -7,11 +7,13 @@ import os
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-from .refresh_token import refresh_access_token
+from utils import refresh_access_token
 import json
-import ffmpeg
+from moviepy.editor import VideoFileClip
 from PIL import Image
 import io
+import cv2
+from PIL import Image
 
 bp = Blueprint('teacher', __name__, url_prefix='/teacher')
 
@@ -303,13 +305,6 @@ def edit_video(course_id, video_id):
         return redirect(url_for('teacher.edit_course', course_id=course_id))
     
     return render_template('teacher/edit_video.html', course_id=course_id, video_id=video_id, video=video)
-
-from moviepy.editor import VideoFileClip
-from PIL import Image
-import io
-
-import cv2
-from PIL import Image
 
 def get_video_duration(file_path):
     """Extract video duration using OpenCV."""
