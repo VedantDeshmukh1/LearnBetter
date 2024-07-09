@@ -1,11 +1,18 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from firebase_admin import firestore
-import random
-import string
-from config import db, rdb, auth , bucket
+from config import db, rdb, auth
 from utils import generate_video_id, validate_name
 from werkzeug.utils import secure_filename
 import os
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from .refresh_token import refresh_access_token
+import json
+import ffmpeg
+from PIL import Image
+import io
+
 bp = Blueprint('teacher', __name__, url_prefix='/teacher')
 
 @bp.route('/login', methods=['GET', 'POST'])
@@ -151,16 +158,24 @@ def view_course(course_id):
 
     return render_template('teacher/view_course.html', course=course)
 
+def get_drive_file_id(url):
+    """Extract the file ID from a Google Drive URL."""
+    file_id = url.split('/d/')[1].split('/')[0]
+    return file_id
+
 @bp.route('/add_video/<course_id>', methods=['GET', 'POST'])
 def add_video(course_id):
     if 'user' not in session or session['user']['role'] != 'teacher':
         return redirect(url_for('teacher.login'))
     
+    # Fetch course details to get the course name
+    course_ref = db.collection('course_details').document(course_id)
+    course = course_ref.get().to_dict()
+    course_name = course.get('course_name', 'Unknown')
+    
     if request.method == 'POST':
         video_title = request.form['video_title']
-        video_duration = int(request.form['video_duration'])
         video_description = request.form['video_description']
-        video_thumbnail = request.form['video_thumbnail']
         
         if not validate_name(video_title):
             flash('Video title must be at least 2 characters long', 'error')
@@ -172,37 +187,47 @@ def add_video(course_id):
             filename = secure_filename(video_file.filename)
             file_extension = os.path.splitext(filename)[1]
             
-            # Generate a unique filename
-            unique_filename = f"{course_id}_{generate_video_id()}{file_extension}"
+            # Generate a unique filename for the video
+            video_id = generate_video_id()
+            unique_filename = f"{video_id}{file_extension}"
             
-            # Upload file to Firebase Storage
-            blob = bucket.blob(f"course_videos/{unique_filename}")
-            blob.upload_from_string(
-                video_file.read(),
-                content_type=video_file.content_type
-            )
+            # Save file temporarily
+            temp_path = f"temp_{unique_filename}"
+            video_file.save(temp_path)
             
-            # Make the blob publicly accessible
-            blob.make_public()
+            # Extract video duration
+            video_duration = get_video_duration(temp_path)
+            if video_duration is None:
+                os.remove(temp_path)
+                flash('Failed to process video. Please try again or use a different file.', 'error')
+                return render_template('teacher/add_video.html', course_id=course_id)
             
-            # Get the public URL
-            video_url = blob.public_url
+            # Upload video to Google Drive
+            video_url = upload_to_drive(temp_path, unique_filename, course_id, course_name)
+            
+            # Remove temporary file
+            os.remove(temp_path)
+            
+            if not video_url:
+                flash('Failed to upload video', 'error')
+                return render_template('teacher/add_video.html', course_id=course_id)
+
+            # Get the thumbnail URL
+            drive_file_id = get_drive_file_id(video_url)
+            thumbnail_url = f"https://drive.google.com/thumbnail?id={drive_file_id}"
         else:
             flash('No video file uploaded', 'error')
             return render_template('teacher/add_video.html', course_id=course_id)
-        
-        video_id = generate_video_id()
         
         video_data = {
             'title': video_title,
             'duration': video_duration,
             'url': video_url,
             'description': video_description,
-            'thumbnail': video_thumbnail
+            'thumbnail': thumbnail_url
         }
         
         # Update course with new video
-        course_ref = db.collection('course_details').document(course_id)
         course_ref.update({
             f'videos.{video_id}': video_data
         })
@@ -220,59 +245,174 @@ def edit_video(course_id, video_id):
     course_ref = db.collection('course_details').document(course_id)
     course = course_ref.get().to_dict()
     video = course['videos'][video_id]
+    course_name = course.get('course_name', 'Unknown')
 
     if request.method == 'POST':
         video_title = request.form['video_title']
-        video_duration = int(request.form['video_duration'])
         video_description = request.form['video_description']
-        video_thumbnail = request.form['video_thumbnail']
         
         if not validate_name(video_title):
             flash('Video title must be at least 2 characters long', 'error')
             return render_template('teacher/edit_video.html', course_id=course_id, video_id=video_id, video=video)
         
-        # Handle file upload
+        # Handle file upload if a new video is provided
         video_file = request.files['video_file']
         if video_file:
-            # Delete the old video file from Firebase Storage
-            old_video_url = video['url']
-            if old_video_url:
-                old_blob = bucket.blob(old_video_url.split('/')[-1])
-                old_blob.delete()
-
             filename = secure_filename(video_file.filename)
             file_extension = os.path.splitext(filename)[1]
             
             # Generate a unique filename
-            unique_filename = f"{course_id}_{video_id}{file_extension}"
+            unique_filename = f"{generate_video_id()}{file_extension}"
             
-            # Upload new file to Firebase Storage
-            blob = bucket.blob(f"course_videos/{unique_filename}")
-            blob.upload_from_string(
-                video_file.read(),
-                content_type=video_file.content_type
-            )
+            # Save file temporarily
+            temp_path = f"temp_{unique_filename}"
+            video_file.save(temp_path)
             
-            # Make the blob publicly accessible
-            blob.make_public()
+            # Extract video duration
+            video_duration = get_video_duration(temp_path)
             
-            # Get the public URL
-            video_url = blob.public_url
-        else:
-            video_url = video['url']
+            # Upload video to Google Drive
+            video_url = upload_to_drive(temp_path, unique_filename, course_id, course_name)
+            
+            # Remove temporary file
+            os.remove(temp_path)
+            
+            if not video_url:
+                flash('Failed to upload video', 'error')
+                return render_template('teacher/edit_video.html', course_id=course_id, video_id=video_id, video=video)
+            
+            # Get the new thumbnail URL
+            drive_file_id = get_drive_file_id(video_url)
+            thumbnail_url = f"https://drive.google.com/thumbnail?id={drive_file_id}"
+            
+            # Update video data
+            video['url'] = video_url
+            video['duration'] = video_duration
+            video['thumbnail'] = thumbnail_url
         
+        # Update video metadata
+        video['title'] = video_title
+        video['description'] = video_description
+        
+        # Update course with edited video
         course_ref.update({
-            f'videos.{video_id}.title': video_title,
-            f'videos.{video_id}.duration': video_duration,
-            f'videos.{video_id}.url': video_url,
-            f'videos.{video_id}.description': video_description,
-            f'videos.{video_id}.thumbnail': video_thumbnail
+            f'videos.{video_id}': video
         })
         
         flash('Video updated successfully', 'success')
         return redirect(url_for('teacher.edit_course', course_id=course_id))
     
     return render_template('teacher/edit_video.html', course_id=course_id, video_id=video_id, video=video)
+
+from moviepy.editor import VideoFileClip
+from PIL import Image
+import io
+
+import cv2
+from PIL import Image
+
+def get_video_duration(file_path):
+    """Extract video duration using OpenCV."""
+    try:
+        video = cv2.VideoCapture(file_path)
+        fps = video.get(cv2.CAP_PROP_FPS)
+        frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+        duration = frame_count / fps if fps > 0 else 0
+        video.release()
+        return int(duration)
+    except Exception as e:
+        print(f"Error getting video duration: {str(e)}")
+        return None
+
+def create_thumbnail(video_path, thumbnail_path):
+    """Create thumbnail from the first frame of the video using OpenCV and save as JPEG."""
+    try:
+        video = cv2.VideoCapture(video_path)
+        success, frame = video.read()
+        if success:
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(rgb_frame)
+            img.thumbnail((1200, 1200))  # Resize the image to a maximum of 320x320
+            
+            img.save(thumbnail_path, "JPEG", quality=85)
+            video.release()
+            return True
+        else:
+            print("Failed to read the first frame of the video")
+            return False
+    except Exception as e:
+        print(f"Error creating thumbnail: {str(e)}")
+        return False
+
+def upload_to_drive(file_path, file_name, course_id, course_name):
+    """Upload file to Google Drive and return the sharing link."""
+    # Refresh the token before uploading
+    refresh_access_token()
+
+    # Load credentials from the file
+    with open('credentials.json', 'r') as cred_file:
+        cred_data = json.load(cred_file)
+    
+    creds = Credentials(
+        token=cred_data['access_token'],
+        refresh_token=cred_data['refresh_token'],
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=cred_data.get('client_id'),
+        client_secret=cred_data.get('client_secret'),
+        scopes=[cred_data['scope']]
+    )
+
+    try:
+        # Create Drive API client
+        service = build("drive", "v3", credentials=creds)
+
+        # Create or get the course folder
+        folder_name = f"{course_id}_{course_name}"
+        folder_id = get_or_create_folder(service, folder_name)
+
+        file_metadata = {
+            "name": file_name,
+            "parents": [folder_id]
+        }
+        media = MediaFileUpload(file_path, resumable=True)
+        
+        file = service.files().create(
+            body=file_metadata, 
+            media_body=media, 
+            fields="id, webViewLink"
+        ).execute()
+        
+        sharing_link = file.get("webViewLink")
+        modified_link = sharing_link.replace("/view?usp=drivesdk", "/preview?")
+        return modified_link
+
+    except Exception as error:
+        print(f"An error occurred: {error}")
+        return None
+
+def get_or_create_folder(service, folder_name):
+    """Check if folder exists in Google Drive, if not create it."""
+    # Check if folder already exists
+    results = service.files().list(
+        q=f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false",
+        spaces='drive',
+        fields='files(id, name)'
+    ).execute()
+    folders = results.get('files', [])
+
+    if folders:
+        # Folder exists, return its ID
+        return folders[0]['id']
+    else:
+        # Folder doesn't exist, create it
+        file_metadata = {
+            'name': folder_name,
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+        folder = service.files().create(body=file_metadata, fields='id').execute()
+        return folder.get('id')
+
+# ... (keep your other routes and functions) ...
 
 @bp.route('/delete_video/<course_id>/<video_id>')
 def delete_video(course_id, video_id):

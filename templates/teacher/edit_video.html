@@ -2,15 +2,19 @@
 {% block content %}
 <h2>Edit Video</h2>
 <form method="POST" enctype="multipart/form-data">
-    <input type="text" name="video_title" value="{{ video.title }}" required>
-    <input type="number" name="video_duration" value="{{ video.duration }}" required>
-    <input type="url" name="video_url" value="{{ video.url }}" required>
-    <input type="submit" value="Update Video">
+    <label for="video_title">Video Title:</label>
+    <input type="text" id="video_title" name="video_title" value="{{ video.title }}" required><br>
+
+    <label for="video_description">Video Description:</label>
+    <textarea id="video_description" name="video_description" required>{{ video.description }}</textarea><br>
+
     <div class="form-group">
         <label for="video_file">Video File</label>
         <input type="file" class="form-control-file" id="video_file" name="video_file" accept="video/*">
         <small class="form-text text-muted">Leave empty to keep the current video file.</small>
     </div>
+
+    <input type="submit" value="Update Video">
 </form>
 <a href="{{ url_for('teacher.edit_course', course_id=course_id) }}">Back to Course</a>
 {% endblock %}
