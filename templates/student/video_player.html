@@ -71,17 +71,17 @@
     <div class="video-player-container">
         <div class="video-main">
             <div class="video-container">
-                <iframe id="video-player" src="{{ current_video.url }}" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                <iframe id="video-player" src="" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
             </div>
             <div class="video-info">
-                <h1>{{ current_video.title }}</h1>
+                <h1 id="video-title"></h1>
                 <p>{{ course.course_name }}</p>
             </div>
         </div>
         <div class="video-list">
             <h2>Course Videos</h2>
-            {% for video in course.videos.values() %}
-                <div class="video-item {% if video.id == current_video.id %}active{% endif %}" data-video-id="{{ video.id }}">
+            {% for video in videos %}
+                <div class="video-item" data-video-id="{{ video.id }}" data-video-url="{{ video.url }}">
                     <h3>{{ video.title }}</h3>
                     <p>{{ video.duration }} minutes</p>
                 </div>
@@ -92,13 +92,13 @@
     <script>
         const videoItems = document.querySelectorAll('.video-item');
         const videoPlayer = document.getElementById('video-player');
-        let currentVideoId = '{{ current_video.id }}';
+        const videoTitle = document.getElementById('video-title');
+        let currentVideoId = '';
         let courseId = '{{ course.id }}';
 
-        function updateVideoSrc(videoId, timestamp = 0) {
-            let videoUrl = '{{ current_video.url }}';
-            videoUrl = videoUrl.split('?')[0]; // Remove any existing parameters
+        function updateVideoSrc(videoId, videoUrl, timestamp = 0) {
             videoPlayer.src = `${videoUrl}?t=${Math.floor(timestamp)}s`;
+            currentVideoId = videoId;
         }
 
         function saveVideoProgress(videoId, currentTime) {
@@ -121,33 +121,39 @@
         videoItems.forEach(item => {
             item.addEventListener('click', () => {
                 const videoId = item.getAttribute('data-video-id');
-                fetch(`/student/update_video_progress/${videoId}?course_id=${courseId}`)
+                const videoUrl = item.getAttribute('data-video-url');
+                const videoTitleText = item.querySelector('h3').textContent;
+
+                updateVideoSrc(videoId, videoUrl);
+                videoTitle.textContent = videoTitleText;
+
+                videoItems.forEach(v => v.classList.remove('active'));
+                item.classList.add('active');
+
+                fetch(`/student/get_video_progress/${videoId}?course_id=${courseId}`)
                     .then(response => response.json())
                     .then(data => {
-                        updateVideoSrc(videoId, data.timestamp);
-                        currentVideoId = videoId;
-                        videoItems.forEach(v => v.classList.remove('active'));
-                        item.classList.add('active');
+                        updateVideoSrc(videoId, videoUrl, data.timestamp);
                     });
             });
         });
 
         // Save video progress every 5 seconds
         setInterval(() => {
-            const currentTime = videoPlayer.contentWindow.postMessage({ type: 'getCurrentTime' }, '*');
-            window.addEventListener('message', function(event) {
-                if (event.data.type === 'currentTime') {
-                    saveVideoProgress(currentVideoId, event.data.time);
-                }
-            });
+            if (currentVideoId) {
+                const currentTime = videoPlayer.contentWindow.postMessage({ type: 'getCurrentTime' }, '*');
+                window.addEventListener('message', function(event) {
+                    if (event.data.type === 'currentTime') {
+                        saveVideoProgress(currentVideoId, event.data.time);
+                    }
+                });
+            }
         }, 5000);
 
-        // Load initial video with saved timestamp
-        fetch(`/student/get_video_progress/${currentVideoId}?course_id=${courseId}`)
-            .then(response => response.json())
-            .then(data => {
-                updateVideoSrc(currentVideoId, data.timestamp);
-            });
+        // Load initial video
+        if (videoItems.length > 0) {
+            videoItems[0].click();
+        }
     </script>
 </body>
 </html>

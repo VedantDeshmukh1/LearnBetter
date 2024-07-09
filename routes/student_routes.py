@@ -167,30 +167,23 @@ def video_player(course_id):
         return redirect(url_for('student.login'))
 
     user_id = session['user_id']
-    course_doc = db.collection('course_details').document(course_id).get()
-    if course_doc.exists:
-        course = course_doc.to_dict()
-        course['id'] = course_doc.id
+    student_ref = db.collection('student_details').document(user_id)
+    student = student_ref.get().to_dict()
 
-        # Check if the user has purchased the course
-        student_ref = db.collection('student_details').document(user_id)
-        student_doc = student_ref.get()
-        purchased_courses = student_doc.to_dict().get('purchased_courses', [])
+    if course_id not in student.get('purchased_courses', []):
+        flash('Please purchase the course to access the videos.', 'error')
+        return redirect(url_for('student.course_details', course_id=course_id))
 
-        if course_id not in purchased_courses:
-            flash('You have not purchased this course', 'error')
-            return redirect(url_for('student.course_details', course_id=course_id))
+    course_ref = db.collection('course_details').document(course_id)
+    course = course_ref.get().to_dict()
+    course['id'] = course_id
 
-        # Get the current video (either the first one or the last watched)
-        progress = student_doc.to_dict().get('progress', {}).get(course_id, {})
-        current_video_id = progress.get('last_watched_video', list(course['videos'].keys())[0])
-        current_video = course['videos'][current_video_id]
-        current_video['id'] = current_video_id
+    videos = []
+    for video_id, video_data in course['videos'].items():
+        video_data['id'] = video_id
+        videos.append(video_data)
 
-        return render_template('student/video_player.html', course=course, current_video=current_video)
-    else:
-        flash('Course not found', 'error')
-        return redirect(url_for('student.home'))
+    return render_template('student/video_player.html', course=course, videos=videos)
 
 @bp.route('/save_video_progress', methods=['POST'])
 def save_video_progress():
@@ -206,7 +199,6 @@ def save_video_progress():
     if not all([video_id, current_time, course_id]):
         return jsonify({'error': 'Missing required data'}), 400
 
-    # Save the current time for the video in the student's progress
     student_ref = db.collection('student_details').document(user_id)
     student_ref.update({
         f'progress.{course_id}.videos.{video_id}.timestamp': current_time,
@@ -215,26 +207,26 @@ def save_video_progress():
 
     return jsonify({'success': True})
 
-@bp.route('/update_video_progress/<video_id>')
+@bp.route('/student/update_video_progress/<video_id>', methods=['GET'])
 def update_video_progress(video_id):
     if 'user' not in session:
-        return jsonify({'error': 'User not logged in'}), 401
+        return jsonify({'error': 'Unauthorized'}), 401
 
     user_id = session['user_id']
     course_id = request.args.get('course_id')
 
-    # Update the last watched video in the student's progress
+    if not course_id:
+        return jsonify({'error': 'Missing course_id'}), 400
+
     student_ref = db.collection('student_details').document(user_id)
-    student_ref.update({
-        f'progress.{course_id}.last_watched_video': video_id,
-        f'progress.{course_id}.last_accessed': firestore.SERVER_TIMESTAMP
-    })
+    student_doc = student_ref.get()
+    student_data = student_doc.to_dict()
 
-    # Get the video timestamp
-    student_doc = student_ref.get().to_dict()
-    timestamp = student_doc.get('progress', {}).get(course_id, {}).get('videos', {}).get(video_id, {}).get('timestamp', 0)
-
-    return jsonify({'timestamp': timestamp})
+    if course_id in student_data['progress'] and video_id in student_data['progress'][course_id]:
+        timestamp = student_data['progress'][course_id][video_id]
+        return jsonify({'timestamp': timestamp}), 200
+    else:
+        return jsonify({'timestamp': 0}), 200
 
 @bp.route('/get_video_progress/<video_id>')
 def get_video_progress(video_id):
