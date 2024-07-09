@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from firebase_admin import firestore
 from config import db, rdb, auth
-from utils import validate_email, update_course_ratings, generate_username, generate_password
+from utils import validate_email, update_course_ratings, generate_username, generate_password, send_email
 import re
 
 bp = Blueprint('student', __name__)
@@ -80,10 +80,17 @@ def register():
             }
             db.collection('student_details').document(user_id).set(student_data)
             
+            # Send verification email
             auth.send_email_verification(user['idToken'])
+            
+            # Send login credentials
+            subject = "Welcome to Magpie Learning - Your Account Information"
+            body = f"Thank you for registering with Magpie Learning!\n\nYour username is: {username}\nYour password is: {password}\n\nPlease verify your email to activate your account."
+            send_email(email, subject, body)
+
             print(f"User registered: {user_data_rdb}")  # Debug print
-            flash('Registration successful. Check your email for login credentials.', 'success')
-            return redirect(url_for('login'))
+            flash('Registration successful. Check your email for login credentials and verification link.', 'success')
+            return redirect(url_for('student.login'))
         except Exception as e:
             print(f"Registration error: {str(e)}")  # Debug print
             flash('Registration failed', 'error')
@@ -290,12 +297,23 @@ def forgot_password():
             flash('Invalid email format', 'error')
             return render_template('student/forgot_password.html')
         
-        users = db.collection('users').where('email_id', '==', email).stream()
-        for user in users:
-            # Here you would send an email with the username and password
-            flash('Password reset instructions sent to your email', 'success')
-            return redirect(url_for('student.login'))
-        flash('Email not found. Please enter the correct email or register.', 'error')
+        users = rdb.child("users").get()
+        user_data = None
+        for user in users.each():
+            if user.val()['email'] == email:
+                user_data = user.val()
+                break
+        
+        if user_data:
+            subject = "Your Magpie Learning Account Information"
+            body = f"Your username is: {user_data['username']}\nYour password is: {user_data['password']}"
+            if send_email(email, subject, body):
+                flash('Your login credentials have been sent to your email', 'success')
+                return redirect(url_for('student.login'))
+            else:
+                flash('An error occurred while sending the email. Please try again later.', 'error')
+        else:
+            flash('Email not found. Please enter the correct email or register.', 'error')
     return render_template('student/forgot_password.html')
 
 @bp.route('/purchase_course/<course_id>', methods=['POST'])
@@ -309,6 +327,12 @@ def purchase_course(course_id):
     student_ref = db.collection('student_details').document(user_id)
     student_ref.update({
         'purchased_courses': firestore.ArrayUnion([course_id])
+    })
+
+    # Update user document in Firestore
+    user_ref = db.collection('users').document(user_id)
+    user_ref.update({
+        f'courses_enrolled.{course_id}': firestore.SERVER_TIMESTAMP
     })
 
     # Update course details

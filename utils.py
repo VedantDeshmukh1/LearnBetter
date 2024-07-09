@@ -1,7 +1,14 @@
+import os
+import pickle
 import random
 import string
 import re
 from firebase_admin import firestore
+from email.mime.text import MIMEText
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from base64 import urlsafe_b64encode
 
 def generate_username(first_name, last_name, email):
     username = first_name[:2] + last_name[:2] + str(len(email)) + str(random.randint(100, 999))
@@ -41,3 +48,36 @@ def update_course_ratings(course_ref, new_rating):
 
 def generate_video_id():
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
+
+SCOPES = ['https://mail.google.com/']
+our_email = 'learnbetter310@gmail.com'
+
+def gmail_authenticate():
+    creds = None
+    if os.path.exists("token.pickle"):
+        with open("token.pickle", "rb") as token:
+            creds = pickle.load(token)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file('credentials_email.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open("token.pickle", "wb") as token:
+            pickle.dump(creds, token)
+    return build('gmail', 'v1', credentials=creds)
+
+def send_email(to, subject, body):
+    service = gmail_authenticate()
+    message = MIMEText(body)
+    message['to'] = to
+    message['subject'] = subject
+    message['from'] = our_email
+    raw_message = urlsafe_b64encode(message.as_bytes()).decode('utf-8')
+    try:
+        message = service.users().messages().send(userId="me", body={'raw': raw_message}).execute()
+        print(f"Message Id: {message['id']}")
+        return True
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return False
