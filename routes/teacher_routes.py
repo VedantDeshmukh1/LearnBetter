@@ -361,13 +361,16 @@ def upload_to_drive(file_path, file_name, course_id, course_name):
         # Create Drive API client
         service = build("drive", "v3", credentials=creds)
 
-        # Create or get the course folder
-        folder_name = f"{course_id}_{course_name}"
-        folder_id = get_or_create_folder(service, folder_name)
+        # Create or get the "courses" folder
+        courses_folder_id = get_or_create_folder(service, "courses")
+
+        # Create or get the course-specific folder within "courses"
+        course_folder_name = f"{course_id}_{course_name}"
+        course_folder_id = get_or_create_folder(service, course_folder_name, parent_id=courses_folder_id)
 
         file_metadata = {
             "name": file_name,
-            "parents": [folder_id]
+            "parents": [course_folder_id]
         }
         media = MediaFileUpload(file_path, resumable=True)
         
@@ -385,14 +388,13 @@ def upload_to_drive(file_path, file_name, course_id, course_name):
         print(f"An error occurred: {error}")
         return None
 
-def get_or_create_folder(service, folder_name):
+def get_or_create_folder(service, folder_name, parent_id=None):
     """Check if folder exists in Google Drive, if not create it."""
-    # Check if folder already exists
-    results = service.files().list(
-        q=f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false",
-        spaces='drive',
-        fields='files(id, name)'
-    ).execute()
+    query = f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false"
+    if parent_id:
+        query += f" and '{parent_id}' in parents"
+
+    results = service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
     folders = results.get('files', [])
 
     if folders:
@@ -404,10 +406,11 @@ def get_or_create_folder(service, folder_name):
             'name': folder_name,
             'mimeType': 'application/vnd.google-apps.folder'
         }
+        if parent_id:
+            file_metadata['parents'] = [parent_id]
+        
         folder = service.files().create(body=file_metadata, fields='id').execute()
         return folder.get('id')
-
-# ... (keep your other routes and functions) ...
 
 def get_drive_service():
     """Return an authenticated Google Drive service object."""
