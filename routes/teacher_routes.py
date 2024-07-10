@@ -14,7 +14,7 @@ from PIL import Image
 import io
 import cv2
 from PIL import Image
-
+from googleapiclient.errors import HttpError
 bp = Blueprint('teacher', __name__, url_prefix='/teacher')
 
 @bp.route('/login', methods=['GET', 'POST'])
@@ -409,6 +409,37 @@ def get_or_create_folder(service, folder_name):
 
 # ... (keep your other routes and functions) ...
 
+def get_drive_service():
+    """Return an authenticated Google Drive service object."""
+    # Refresh the token before creating the service
+    refresh_access_token()
+
+    # Load credentials from the file
+    with open('credentials.json', 'r') as cred_file:
+        cred_data = json.load(cred_file)
+    
+    creds = Credentials(
+        token=cred_data['access_token'],
+        refresh_token=cred_data['refresh_token'],
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=cred_data.get('client_id'),
+        client_secret=cred_data.get('client_secret'),
+        scopes=[cred_data['scope']]
+    )
+
+    # Create and return Drive API client
+    return build("drive", "v3", credentials=creds)
+
+def get_drive_file_id(url):
+    """Extract and return the file ID from the Google Drive URL."""
+    # Assuming the URL format is like: https://drive.google.com/file/d/{file_id}/view
+    # or https://drive.google.com/open?id={file_id}
+    if '/file/d/' in url:
+        return url.split('/file/d/')[1].split('/')[0]
+    elif 'id=' in url:
+        return url.split('id=')[1]
+    return None
+
 @bp.route('/delete_video/<course_id>/<video_id>')
 def delete_video(course_id, video_id):
     if 'user' not in session or session['user']['role'] != 'teacher':
@@ -416,16 +447,24 @@ def delete_video(course_id, video_id):
     
     course_ref = db.collection('course_details').document(course_id)
     course = course_ref.get().to_dict()
-    video = course['videos'][video_id]
+    video = course['videos'].get(video_id)
     
-    # Delete the video file from Firebase Storage
+    if not video:
+        flash('Video not found', 'error')
+        return redirect(url_for('teacher.edit_course', course_id=course_id))
+    
+    # Delete the video file from Google Drive
     video_url = video.get('url')
     if video_url:
         try:
-            # Extract the blob name from the URL
-            blob_name = video_url.split('/')[-1]
-            blob = bucket.blob(f"course_videos/{blob_name}")
-            blob.delete()
+            file_id = get_drive_file_id(video_url)
+            if file_id:
+                drive_service = get_drive_service()
+                drive_service.files().delete(fileId=file_id).execute()
+            else:
+                print(f"Could not extract file ID from URL: {video_url}")
+        except HttpError as error:
+            print(f'An error occurred while deleting the file: {error}')
         except Exception as e:
             print(f"Error deleting video file: {str(e)}")
     
