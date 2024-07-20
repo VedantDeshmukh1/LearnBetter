@@ -1,49 +1,161 @@
-{% extends "base.html" if 'user' not in session else "student/base_student.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magpie Learning</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .course-card {
+            transition: transform 0.3s ease-in-out;
+        }
+        .course-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <header class="bg-white shadow-md">
+        <nav class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <div class="text-2xl font-bold text-blue-600">Magpie Learning</div>
+                <div class="flex space-x-4 items-center">
+                    <a href="{{ url_for('student.home') }}" class="text-gray-800 hover:text-blue-600">Explore</a>
+                    <input type="text" id="search-input" placeholder="Search courses or instructors" class="border rounded-md px-3 py-1 w-64">
+                    {% if 'user' in session %}
+                        <a href="{{ url_for('student.my_courses') }}" class="text-gray-800 hover:text-blue-600">My Learning</a>
+                        <a href="{{ url_for('student.profile') }}" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center">
+                            {{ session['user']['first_name'][0] }}
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('student.login') }}" class="text-gray-800 hover:text-blue-600">Login</a>
+                        <a href="{{ url_for('teacher.login') }}" class="text-gray-800 hover:text-blue-600">Teacher Login</a>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+    </header>
 
-{% block content %}
-<h1>Welcome to Magpie Learning</h1>
-<p>Explore our courses and start learning today!</p>
-
-<div id="course-grid" class="course-grid">
-    {% for course in courses %}
-        <div class="course-card">
-            <h2>{{ course.course_name }}</h2>
-            <p>Instructor: {{ course.course_instructor }}</p>
-            <p>Rating: {{ course.average_rating }}★</p>
-            <p>Duration: {{ course.course_duration }} hours</p>
-            <p>Price: ${{ course.course_price }}</p>
-               <a href="{{ url_for('student.course_details', course_id=course.id) }}" class="btn">View Course</a>
+    <main class="container mx-auto px-6 py-8 flex-grow">
+        <h2 class="text-2xl font-bold mb-6">Most Popular Courses</h2>
+        <div id="popular-courses" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {% for course in courses %}
+                <div class="course-card bg-white rounded-lg shadow-md overflow-hidden">
+                    <img src="{{ (course.videos.values()|list|first).thumbnail if course.videos and course.videos.values()|list else url_for('static', filename='images/default_thumbnail.jpg') }}" alt="{{ course.course_name }}" class="w-full h-40 object-cover">
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg mb-1">{{ course.course_name }}</h3>
+                        <p class="text-sm text-gray-600">{{ course.course_instructor }}</p>
+                        <p class="text-sm text-gray-600">Rating: {{ course.average_rating }}★</p>
+                        <p class="text-sm text-gray-600">Duration: {{ course.course_duration }} hours</p>
+                        <p class="text-sm font-bold mt-2">${{ course.course_price }}</p>
+                        <a href="{{ url_for('student.course_details', course_id=course.id) }}" class="mt-2 inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">View Course</a>
+                    </div>
+                </div>
+            {% endfor %}
         </div>
-    {% endfor %}
-</div>
+        <button id="load-more" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Show more courses</button>
+    </main>
 
-<button id="load-more" class="btn">Load More</button>
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="container mx-auto px-6 py-8">
+            <div class="flex flex-wrap justify-between">
+                <div class="w-full md:w-1/4 mb-6 md:mb-0">
+                    <h3 class="text-lg font-semibold mb-4">Magpie Learning</h3>
+                    <ul>
+                        <li><a href="#" class="hover:text-blue-400">About</a></li>
+                        <li><a href="#" class="hover:text-blue-400">What We Offer</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Leadership</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Careers</a></li>
+                    </ul>
+                </div>
+                <div class="w-full md:w-1/4 mb-6 md:mb-0">
+                    <h3 class="text-lg font-semibold mb-4">Community</h3>
+                    <ul>
+                        <li><a href="#" class="hover:text-blue-400">Learners</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Partners</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Developers</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Beta Testers</a></li>
+                    </ul>
+                </div>
+                <div class="w-full md:w-1/4 mb-6 md:mb-0">
+                    <h3 class="text-lg font-semibold mb-4">Connect</h3>
+                    <ul>
+                        <li><a href="#" class="hover:text-blue-400">Blog</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Tech Blog</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Teaching Center</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="w-full md:w-1/4">
+                    <h3 class="text-lg font-semibold mb-4">Legal</h3>
+                    <ul>
+                        <li><a href="#" class="hover:text-blue-400">Terms of Use</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Cookie Policy</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Accessibility</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-8 text-center">
+                <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
 
-<script>
-let offset = 6;
-document.getElementById('load-more').addEventListener('click', function() {
-    fetch(`/load_more_courses/${offset}`)
-        .then(response => response.json())
-        .then(data => {
-            const courseGrid = document.getElementById('course-grid');
-            data.forEach(course => {
-                const courseCard = document.createElement('div');
-                courseCard.className = 'course-card';
-                courseCard.innerHTML = `
-                    <h2>${course.course_name}</h2>
-                    <p>Instructor: ${course.course_instructor}</p>
-                    <p>Rating: ${course.average_rating}★</p>
-                    <p>Duration: ${course.course_duration} hours</p>
-                    <p>Price: $${course.course_price}</p>
-                    <a href="/course/${course.id}" class="btn">View Course</a>
-                `;
-                courseGrid.appendChild(courseCard);
-            });
-            offset += 6;
-            if (data.length < 6) {
-                this.style.display = 'none';
+    <script>
+        function displayCourses(courses, append = false) {
+            const courseContainer = document.getElementById('popular-courses');
+            if (!append) {
+                courseContainer.innerHTML = ''; // Clear existing courses if not appending
             }
+            courses.forEach(course => {
+                const courseCard = document.createElement('div');
+                courseCard.className = 'course-card bg-white rounded-lg shadow-md overflow-hidden';
+                const thumbnailSrc = course.videos && Object.values(course.videos).length > 0
+                    ? Object.values(course.videos)[0].thumbnail
+                    : "{{ url_for('static', filename='images/default_thumbnail.jpg') }}";
+                courseCard.innerHTML = `
+                    <img src="${thumbnailSrc}" alt="${course.course_name}" class="w-full h-40 object-cover">
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg mb-1">${course.course_name}</h3>
+                        <p class="text-sm text-gray-600">${course.course_instructor}</p>
+                        <p class="text-sm text-gray-600">Rating: ${course.average_rating}★</p>
+                        <p class="text-sm text-gray-600">Duration: ${course.course_duration} hours</p>
+                        <p class="text-sm font-bold mt-2">$${course.course_price}</p>
+                        <a href="/course/${course.id}" class="mt-2 inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">View Course</a>
+                    </div>
+                `;
+                courseContainer.appendChild(courseCard);
+            });
+        }
+
+        let debounceTimer;
+        const searchInput = document.getElementById('search-input');
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const searchQuery = this.value;
+                fetch(`{{ url_for('student.search_courses') }}?query=${encodeURIComponent(searchQuery)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        displayCourses(data);
+                        document.getElementById('load-more').style.display = 'none';
+                    });
+            }, 300); // 300ms delay
         });
-});
-</script>
-{% endblock %}
+
+        let offset = 8;
+        document.getElementById('load-more').addEventListener('click', function() {
+            fetch(`{{ url_for('student.load_more_courses', offset=0) }}`.replace('0', offset))
+                .then(response => response.json())
+                .then(data => {
+                    displayCourses(data, true); // Append new courses
+                    offset += 8;
+                    if (data.length < 8) {
+                        this.style.display = 'none';
+                    }
+                });
+        });
+    </script>
+</body>
+</html>

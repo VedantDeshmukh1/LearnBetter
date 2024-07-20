@@ -11,7 +11,7 @@ bp = Blueprint('student', __name__)
 def home():
     print("Session data:", session)  # Debug print
     courses = []
-    course_docs = db.collection('course_details').limit(6).stream()
+    course_docs = db.collection('course_details').order_by('total_enrollments', direction=firestore.Query.DESCENDING).stream()
     for doc in course_docs:
         course = doc.to_dict()
         course['id'] = doc.id
@@ -21,7 +21,7 @@ def home():
 @bp.route('/load_more_courses/<int:offset>')
 def load_more_courses(offset):
     courses = []
-    course_docs = db.collection('course_details').offset(offset).limit(6).stream()
+    course_docs = db.collection('course_details').order_by('total_enrollments', direction=firestore.Query.DESCENDING).offset(offset).limit(8).stream()
     for doc in course_docs:
         course = doc.to_dict()
         course['id'] = doc.id
@@ -167,6 +167,18 @@ def course_details(course_id):
     else:
         flash('Course not found', 'error')
         return redirect(url_for('student.home'))
+
+@bp.route('/search_courses')
+def search_courses():
+    query = request.args.get('query', '').lower()
+    courses = []
+    course_docs = db.collection('course_details').stream()
+    for doc in course_docs:
+        course = doc.to_dict()
+        course['id'] = doc.id
+        if query in course['course_name'].lower() or query in course['course_instructor'].lower():
+            courses.append(course)
+    return jsonify(courses)
 
 @bp.route('/video_player/<course_id>')
 def video_player(course_id):
