@@ -12,6 +12,16 @@
         .course-card:hover {
             transform: translateY(-5px);
         }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fade-in {
+            animation: fadeIn 1s ease-in-out;
+        }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -35,6 +45,24 @@
             </div>
         </nav>
     </header>
+
+    <!-- New hero banner -->
+    <div class="bg-blue-600 text-white py-16 animate-fade-in">
+        <div class="container mx-auto px-6 text-center">
+            <h1 class="text-4xl font-bold mb-4">Welcome to Magpie Learning</h1>
+            <p class="text-xl mb-8">Discover a world of knowledge at your fingertips</p>
+            <button id="about-us-btn" class="bg-white text-blue-600 px-6 py-3 rounded-full font-semibold hover:bg-blue-100 transition duration-300">About Us</button>
+        </div>
+    </div>
+
+    <!-- New About Us section (initially hidden) -->
+    <div id="about-us" class="bg-gray-100 py-8 hidden">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold mb-4">About Us</h2>
+            <p class="text-lg mb-4">Magpie Learning is dedicated to providing high-quality online education to learners around the world. Our platform connects passionate instructors with eager students, fostering a community of lifelong learners.</p>
+            <p class="text-lg">With a wide range of courses spanning various disciplines, we strive to make education accessible, engaging, and transformative for everyone.</p>
+        </div>
+    </div>
 
     <main class="container mx-auto px-6 py-8 flex-grow">
         <h2 class="text-2xl font-bold mb-6">Most Popular Courses</h2>
@@ -155,6 +183,28 @@
                         this.style.display = 'none';
                     }
                 });
+        });
+
+        // Toggle About Us section visibility
+        const aboutUsBtn = document.getElementById('about-us-btn');
+        const aboutUsSection = document.getElementById('about-us');
+        
+        aboutUsBtn.addEventListener('click', function() {
+            aboutUsSection.classList.toggle('hidden');
+            if (!aboutUsSection.classList.contains('hidden')) {
+                aboutUsSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+
+        // Add fade-in animation
+        const heroSection = document.querySelector('.animate-fade-in');
+        heroSection.style.opacity = '0';
+        heroSection.style.transition = 'opacity 1s ease-in-out';
+        
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                heroSection.style.opacity = '1';
+            }, 100);
         });
     </script>
 </body>
