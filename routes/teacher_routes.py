@@ -15,6 +15,8 @@ import io
 import cv2
 from PIL import Image
 from googleapiclient.errors import HttpError
+from utils import get_drive_service, upload_to_drive, get_drive_file_id
+
 bp = Blueprint('teacher', __name__, url_prefix='/teacher')
 
 @bp.route('/login', methods=['GET', 'POST'])
@@ -160,20 +162,16 @@ def view_course(course_id):
 
     return render_template('teacher/view_course.html', course=course)
 
-def get_drive_file_id(url):
-    """Extract the file ID from a Google Drive URL."""
-    file_id = url.split('/d/')[1].split('/')[0]
-    return file_id
-
 @bp.route('/add_video/<course_id>', methods=['GET', 'POST'])
 def add_video(course_id):
     if 'user' not in session or session['user']['role'] != 'teacher':
         return redirect(url_for('teacher.login'))
     
-    # Fetch course details to get the course name
+    # Fetch course details to get the course name and current video count
     course_ref = db.collection('course_details').document(course_id)
     course = course_ref.get().to_dict()
     course_name = course.get('course_name', 'Unknown')
+    current_video_count = len(course.get('videos', {}))
     
     if request.method == 'POST':
         video_title = request.form['video_title']
@@ -221,12 +219,16 @@ def add_video(course_id):
             flash('No video file uploaded', 'error')
             return render_template('teacher/add_video.html', course_id=course_id)
         
+        # Increment the video sequence number
+        video_seq = current_video_count + 1
+        
         video_data = {
             'title': video_title,
             'duration': video_duration,
             'url': video_url,
             'description': video_description,
-            'thumbnail': thumbnail_url
+            'thumbnail': thumbnail_url,
+            'video_seq': video_seq  # Add the video sequence number
         }
         
         # Update course with new video
@@ -339,122 +341,19 @@ def create_thumbnail(video_path, thumbnail_path):
         print(f"Error creating thumbnail: {str(e)}")
         return False
 
-def upload_to_drive(file_path, file_name, course_id, course_name):
-    """Upload file to Google Drive and return the sharing link."""
-    # Refresh the token before uploading
-    refresh_access_token()
-
-    # Load credentials from the file
-    with open('credentials.json', 'r') as cred_file:
-        cred_data = json.load(cred_file)
-    
-    creds = Credentials(
-        token=cred_data['access_token'],
-        refresh_token=cred_data['refresh_token'],
-        token_uri="https://oauth2.googleapis.com/token",
-        client_id=cred_data.get('client_id'),
-        client_secret=cred_data.get('client_secret'),
-        scopes=[cred_data['scope']]
-    )
-
-    try:
-        # Create Drive API client
-        service = build("drive", "v3", credentials=creds)
-
-        # Create or get the "courses" folder
-        courses_folder_id = get_or_create_folder(service, "courses")
-
-        # Create or get the course-specific folder within "courses"
-        course_folder_name = f"{course_id}_{course_name}"
-        course_folder_id = get_or_create_folder(service, course_folder_name, parent_id=courses_folder_id)
-
-        file_metadata = {
-            "name": file_name,
-            "parents": [course_folder_id]
-        }
-        media = MediaFileUpload(file_path, resumable=True)
-        
-        file = service.files().create(
-            body=file_metadata, 
-            media_body=media, 
-            fields="id, webViewLink"
-        ).execute()
-        
-        sharing_link = file.get("webViewLink")
-        modified_link = sharing_link.replace("/view?usp=drivesdk", "/preview?")
-        return modified_link
-
-    except Exception as error:
-        print(f"An error occurred: {error}")
-        return None
-
-def get_or_create_folder(service, folder_name, parent_id=None):
-    """Check if folder exists in Google Drive, if not create it."""
-    query = f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false"
-    if parent_id:
-        query += f" and '{parent_id}' in parents"
-
-    results = service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
-    folders = results.get('files', [])
-
-    if folders:
-        # Folder exists, return its ID
-        return folders[0]['id']
-    else:
-        # Folder doesn't exist, create it
-        file_metadata = {
-            'name': folder_name,
-            'mimeType': 'application/vnd.google-apps.folder'
-        }
-        if parent_id:
-            file_metadata['parents'] = [parent_id]
-        
-        folder = service.files().create(body=file_metadata, fields='id').execute()
-        return folder.get('id')
-
-def get_drive_service():
-    """Return an authenticated Google Drive service object."""
-    # Refresh the token before creating the service
-    refresh_access_token()
-
-    # Load credentials from the file
-    with open('credentials.json', 'r') as cred_file:
-        cred_data = json.load(cred_file)
-    
-    creds = Credentials(
-        token=cred_data['access_token'],
-        refresh_token=cred_data['refresh_token'],
-        token_uri="https://oauth2.googleapis.com/token",
-        client_id=cred_data.get('client_id'),
-        client_secret=cred_data.get('client_secret'),
-        scopes=[cred_data['scope']]
-    )
-
-    # Create and return Drive API client
-    return build("drive", "v3", credentials=creds)
-
-def get_drive_file_id(url):
-    """Extract and return the file ID from the Google Drive URL."""
-    # Assuming the URL format is like: https://drive.google.com/file/d/{file_id}/view
-    # or https://drive.google.com/open?id={file_id}
-    if '/file/d/' in url:
-        return url.split('/file/d/')[1].split('/')[0]
-    elif 'id=' in url:
-        return url.split('id=')[1]
-    return None
-
-@bp.route('/delete_video/<course_id>/<video_id>')
+@bp.route('/delete_video/<course_id>/<video_id>', methods=['POST'])
 def delete_video(course_id, video_id):
     if 'user' not in session or session['user']['role'] != 'teacher':
         return redirect(url_for('teacher.login'))
     
     course_ref = db.collection('course_details').document(course_id)
     course = course_ref.get().to_dict()
-    video = course['videos'].get(video_id)
     
-    if not video:
+    if 'videos' not in course or video_id not in course['videos']:
         flash('Video not found', 'error')
         return redirect(url_for('teacher.edit_course', course_id=course_id))
+    
+    video = course['videos'][video_id]
     
     # Delete the video file from Google Drive
     video_url = video.get('url')
@@ -462,16 +361,15 @@ def delete_video(course_id, video_id):
         try:
             file_id = get_drive_file_id(video_url)
             if file_id:
-                drive_service = get_drive_service()
-                drive_service.files().delete(fileId=file_id).execute()
+                drive = get_drive_service()
+                file = drive.CreateFile({'id': file_id})
+                file.Delete()
             else:
                 print(f"Could not extract file ID from URL: {video_url}")
-        except HttpError as error:
-            print(f'An error occurred while deleting the file: {error}')
         except Exception as e:
-            print(f"Error deleting video file: {str(e)}")
+            print(f"Error deleting video file from Google Drive: {str(e)}")
     
-    # Remove the video from the course document
+    # Remove the video from the course document in Firebase
     course_ref.update({
         f'videos.{video_id}': firestore.DELETE_FIELD
     })

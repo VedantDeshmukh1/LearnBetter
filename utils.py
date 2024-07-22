@@ -12,6 +12,8 @@ from firebase_admin import firestore
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 import json
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
 
 def refresh_access_token():
     # Load the current credentials
@@ -110,3 +112,89 @@ def send_email(to, subject, body):
     except Exception as e:
         print(f"An error occurred: {e}")
         return False
+
+def get_drive_service():
+    """Return an authenticated Google Drive service object."""
+    gauth = GoogleAuth()
+    
+    # Try to load saved client credentials
+    creds_file = "mycreds.txt"
+    if os.path.exists(creds_file):
+        gauth.LoadCredentialsFile(creds_file)
+    
+    if gauth.credentials is None:
+        # Authenticate if they're not there
+        gauth.LocalWebserverAuth()
+    elif gauth.access_token_expired:
+        # Refresh them if expired
+        gauth.Refresh()
+    else:
+        # Initialize the saved creds
+        gauth.Authorize()
+    
+    # Save the current credentials to a file
+    gauth.SaveCredentialsFile(creds_file)
+    
+    return GoogleDrive(gauth)
+
+def upload_to_drive(file_path, file_name, course_id, course_name):
+    """Upload file to Google Drive and return the sharing link."""
+    drive = get_drive_service()
+
+    # Create or get the "courses" folder
+    courses_folder = get_or_create_folder(drive, "courses")
+
+    # Create or get the course-specific folder within "courses"
+    course_folder_name = f"{course_id}_{course_name}"
+    course_folder = get_or_create_folder(drive, course_folder_name, parent_id=courses_folder['id'])
+
+    # Create the file
+    file = drive.CreateFile({
+        'title': file_name,
+        'parents': [{'id': course_folder['id']}]
+    })
+    file.SetContentFile(file_path)
+    file.Upload()
+
+    # Set the file to be publicly accessible
+    file.InsertPermission({
+        'type': 'anyone',
+        'value': 'anyone',
+        'role': 'reader'
+    })
+
+    # Get the sharing link
+    file.FetchMetadata()
+    sharing_link = file['alternateLink']
+    modified_link = sharing_link.replace("view?usp=drivesdk", "preview")
+    return modified_link
+
+def get_or_create_folder(drive, folder_name, parent_id=None):
+    """Check if folder exists in Google Drive, if not create it."""
+    query = f"title='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+    if parent_id:
+        query += f" and '{parent_id}' in parents"
+
+    file_list = drive.ListFile({'q': query}).GetList()
+
+    if file_list:
+        # Folder exists, return it
+        return file_list[0]
+    else:
+        # Folder doesn't exist, create it
+        folder = drive.CreateFile({
+            'title': folder_name,
+            'mimeType': 'application/vnd.google-apps.folder'
+        })
+        if parent_id:
+            folder['parents'] = [{'id': parent_id}]
+        folder.Upload()
+        return folder
+
+def get_drive_file_id(url):
+    """Extract and return the file ID from the Google Drive URL."""
+    if '/file/d/' in url:
+        return url.split('/file/d/')[1].split('/')[0]
+    elif 'id=' in url:
+        return url.split('id=')[1]
+    return None
