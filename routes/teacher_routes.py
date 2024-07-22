@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session,jsonify
 from firebase_admin import firestore
 from config import db, rdb, auth
-from utils import generate_video_id, validate_name
+from utils import generate_video_id, validate_name ,generate_password,generate_username,send_email
 from werkzeug.utils import secure_filename
 import os
 from google.oauth2.credentials import Credentials
