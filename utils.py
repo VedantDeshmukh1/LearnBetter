@@ -124,10 +124,21 @@ def get_drive_service():
     
     if gauth.credentials is None:
         # Authenticate if they're not there
+        gauth.GetFlow()
+        gauth.flow.params.update({'access_type': 'offline'})
+        gauth.flow.params.update({'approval_prompt': 'force'})
         gauth.LocalWebserverAuth()
     elif gauth.access_token_expired:
         # Refresh them if expired
-        gauth.Refresh()
+        try:
+            gauth.Refresh()
+        except Exception as e:
+            print(f"Error refreshing token: {str(e)}")
+            # If refresh fails, re-authenticate
+            gauth.GetFlow()
+            gauth.flow.params.update({'access_type': 'offline'})
+            gauth.flow.params.update({'approval_prompt': 'force'})
+            gauth.LocalWebserverAuth()
     else:
         # Initialize the saved creds
         gauth.Authorize()
