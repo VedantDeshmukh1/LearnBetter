@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session,jsonify
 from firebase_admin import firestore
 from config import db, rdb, auth
 from utils import generate_video_id, validate_name
@@ -15,6 +15,7 @@ import io
 import cv2
 from PIL import Image
 from googleapiclient.errors import HttpError
+import regex as re
 from utils import get_drive_service, upload_to_drive, get_drive_file_id
 
 bp = Blueprint('teacher', __name__, url_prefix='/teacher')
@@ -47,6 +48,197 @@ def login():
             print(f"Login error: {str(e)}")
             flash('Invalid credentials', 'error')
     return render_template('teacher/login.html')
+@bp.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        first_name = request.form['first_name']
+        last_name = request.form['last_name']
+        email = request.form['email']
+        about = request.form['about']
+        educational_experience = request.form['educational_experience']
+        specialization = request.form['specialization']
+        teaching_experience = request.form['teaching_experience']
+        website = request.form['website']
+        
+        if len(first_name) < 2 or len(last_name) < 2:
+            flash('First name and last name must be at least 2 characters long', 'error')
+            return render_template('teacher/register.html')
+        
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            flash('Invalid email address', 'error')
+            return render_template('teacher/register.html')
+        
+        username = generate_username(first_name, last_name, email)
+        password = generate_password()
+        
+        try:
+            user = auth.create_user_with_email_and_password(email, password)
+            user_id = user['localId']
+            
+            # Add user to Realtime Database
+            user_data_rdb = {
+                "email": email,
+                "username": username,
+                "password": password,
+                "first_name": first_name,
+                "last_name": last_name,
+                "role": "teacher"
+            }
+            rdb.child("users").child(user_id).set(user_data_rdb)
+            
+            # Add user to Firestore
+            user_data_firestore = {
+                'user_id': user_id,
+                'email_id': email,
+                'name': f"{first_name} {last_name}",
+                'role': 'teacher'
+            }
+            db.collection('users').document(user_id).set(user_data_firestore)
+            
+            # Create teacher_details document
+            teacher_data = {
+                'teacher_id': user_id,
+                'name': f"{first_name} {last_name}",
+                'email': email,
+                'about': about,
+                'educational_experience': educational_experience,
+                'specialization': specialization,
+                'teaching_experience': int(teaching_experience),
+                'website': website,
+                'courses_created': [],
+                'total_students': 0,
+                'total_revenue': 0,
+                'average_rating': 0
+            }
+            db.collection('teacher_details').document(user_id).set(teacher_data)
+            
+            # Send verification email
+            # Send verification email
+            auth.send_email_verification(user['idToken'])
+            
+            # Send login credentials
+            subject = "Welcome to Magpie Learning - Your Teacher Account Information"
+            body = f"""
+            Thank you for registering as a teacher with Magpie Learning!
+
+            Your username is: {username}
+            Your password is: {password}
+
+            Please verify your email to activate your account.
+
+            You can now log in and start creating courses.
+            """
+            send_email(email, subject, body)
+
+            print(f"Teacher registered: {user_data_rdb}")  # Debug print
+            flash('Registration successful. Check your email for login credentials and verification link.', 'success')
+            return redirect(url_for('teacher.login'))
+        except Exception as e:
+            print(f"Registration error: {str(e)}")  # Debug print
+            flash('Registration failed', 'error')
+    return render_template('teacher/register.html')
+
+##Profile
+@bp.route('/profile', methods=['GET', 'POST'])
+def profile():
+    if 'user' not in session or session['user']['role'] != 'teacher':
+        return redirect(url_for('teacher.login'))
+    
+    user_id = session['user_id']
+   
+    teacher_doc_ref = db.collection('teacher_details').document(user_id)
+
+    if request.method == 'POST':
+        # Update profile
+        data = request.form
+        update_data = {
+            'name': data.get('name'),
+            'email': data.get('email'),
+            'about': data.get('about'),
+            'educational_experience': data.get('educational_experience'),
+            'specialization': data.get('specialization'),
+            'teaching_experience': int(data.get('teaching_experience', 0)),
+            'website': data.get('website')
+        }
+        # Remove any None values
+        update_data = {k: v for k, v in update_data.items() if v is not None}
+        
+        try:
+            teacher_doc_ref.update(update_data)
+            flash('Profile updated successfully!', 'success')
+        except Exception as e:
+            flash(f'Error updating profile: {str(e)}', 'error')
+        
+        return redirect(url_for('teacher.profile'))
+
+    # GET request
+    try:
+        teacher_doc = teacher_doc_ref.get()
+        
+        if not teacher_doc.exists:
+            flash('Teacher profile not found. Please create a profile.', 'error')
+            return render_template('teacher/profile.html', teacher=None)
+        
+        teacher_data = teacher_doc.to_dict()
+        
+        # Calculate additional statistics
+        courses_ref = db.collection('courses').where('teacher_id', '==', user_id)
+        courses = list(courses_ref.stream())
+        
+        teacher_data['courses_created'] = len(courses)
+        teacher_data['total_students'] = sum(course.to_dict().get('enrolled_students', 0) for course in courses)
+        teacher_data['total_revenue'] = sum(course.to_dict().get('revenue', 0) for course in courses)
+        
+        # Calculate average rating
+        ratings = [course.to_dict().get('average_rating', 0) for course in courses if course.to_dict().get('average_rating') is not None]
+        teacher_data['average_rating'] = sum(ratings) / len(ratings) if ratings else 0
+        
+        # Format fields for display
+        teacher_data['teaching_experience'] = f"{teacher_data.get('teaching_experience', 0)} years"
+        teacher_data['total_revenue'] = f"${teacher_data['total_revenue']:.2f}"
+        teacher_data['average_rating'] = f"{teacher_data['average_rating']:.1f} / 5.0"
+        
+        return render_template('teacher/profile.html', teacher=teacher_data)
+    except Exception as e:
+        flash(f'Error retrieving profile: {str(e)}', 'error')
+        return render_template('teacher/profile.html', teacher=None)
+
+@bp.route('/update_profile', methods=['POST'])
+def update_profile():
+    if 'user' not in session or session['user']['role'] != 'teacher':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
+    user_id = session['user_id']
+    data = request.json
+    
+    try:
+        update_data = {
+            'name': data.get('name'),
+            'email': data.get('email'),
+            'about': data.get('about'),
+            'educational_experience': data.get('educational_experience'),
+            'specialization': data.get('specialization'),
+            'teaching_experience': data.get('teaching_experience'),
+            'website': data.get('website')
+        }
+        
+        # Remove any keys with None values
+        update_data = {k: v for k, v in update_data.items() if v is not None}
+        
+        if update_data:
+            db.collection('teacher_details').document(user_id).update(update_data)
+            
+            # Update the user's name in the users collection if it's provided
+            if 'name' in update_data:
+                db.collection('users').document(user_id).update({'name': update_data['name']})
+            
+            return jsonify({'success': True, 'message': 'Profile updated successfully'})
+        else:
+            return jsonify({'success': False, 'message': 'No data provided for update'}), 400
+    except Exception as e:
+        print(f"Error updating profile: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to update profile'}), 500
+
 
 @bp.route('/dashboard')
 def dashboard():
@@ -374,18 +566,31 @@ def delete_video(course_id, video_id):
         f'videos.{video_id}': firestore.DELETE_FIELD
     })
     
-    flash('Video deleted successfully', 'success')
+    # Reorder remaining videos
+    remaining_videos = course['videos']
+    del remaining_videos[video_id]
+    
+    # Check if video_seq exists, if not create it
+    if not all('video_seq' in video for video in remaining_videos.values()):
+        for i, (vid_id, vid_data) in enumerate(remaining_videos.items(), start=1):
+            remaining_videos[vid_id]['video_seq'] = i
+    
+    # Reorder based on video_seq
+    sorted_videos = sorted(remaining_videos.items(), key=lambda x: x[1]['video_seq'])
+    
+    # Update video_seq to ensure continuous ordering
+    for i, (vid_id, vid_data) in enumerate(sorted_videos, start=1):
+        remaining_videos[vid_id]['video_seq'] = i
+    
+    # Update the course with reordered videos
+    course_ref.update({
+        'videos': remaining_videos
+    })
+    
+    flash('Video deleted successfully and remaining videos reordered', 'success')
     return redirect(url_for('teacher.edit_course', course_id=course_id))
 
-@bp.route('/profile')
-def profile():
-    if 'user' not in session or session['user']['role'] != 'teacher':
-        return redirect(url_for('teacher.login'))
-    
-    user_id = session['user_id']
-    user_data = db.collection('users').document(user_id).get().to_dict()
-    
-    return render_template('teacher/profile.html', user=user_data)
+
 
 @bp.route('/logout')
 def logout():

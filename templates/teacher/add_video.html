@@ -1,4 +1,205 @@
-{% extends "teacher/base_teacher.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Video</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .card-header {
+            background-color: #f7f7f7;
+            padding: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        .card-title {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .card-content {
+            padding: 20px;
+        }
+        .card-footer {
+            padding: 20px;
+            background-color: #f7f7f7;
+            border-top: 1px solid #eaeaea;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        textarea,
+        input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .btn-outline {
+            background-color: transparent;
+            color: #007bff;
+            border: 1px solid #007bff;
+        }
+        .btn-outline:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        .loading-container {
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+        }
+        .bird {
+            font-size: 30px;
+            display: inline-block;
+            animation: fly 2s infinite;
+        }
+        @keyframes fly {
+            0% {
+                transform: translateX(-100%) translateY(0px) scale(0.8);
+            }
+            50% {
+                transform: translateX(50%) translateY(-40px) scale(1);
+            }
+            100% {
+                transform: translateX(200%) translateY(0px) scale(0.8);
+            }
+        }
+        .status-message {
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="card-header">
+            <h1 class="card-title">Add Video</h1>
+        </div>
+        <div class="card-content">
+            <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                <div class="form-group">
+                    <label for="video_title">Video Title:</label>
+                    <input type="text" id="video_title" name="video_title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="video_description">Video Description:</label>
+                    <textarea id="video_description" name="video_description" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="video_file">Video File:</label>
+                    <input type="file" class="form-control-file" id="video_file" name="video_file" accept="video/*" required>
+                </div>
+
+                <div id="loading-container" class="loading-container">
+                    <div class="bird">🐦</div>
+                    <p>Uploading video...</p>
+                </div>
+
+                <div id="status-message" class="status-message"></div>
+
+                <button type="submit" class="btn" id="submitBtn">Add Video</button>
+            </form>
+        </div>
+        <div class="card-footer">
+            <a href="{{ url_for('teacher.edit_course', course_id=course_id) }}" class="btn btn-outline">Back to Course</a>
+        </div>
+    </div>
+
+    <script>
+    document.getElementById('uploadForm').onsubmit = function(e) {
+        e.preventDefault();
+        var form = this;
+        var formData = new FormData(form);
+        var xhr = new XMLHttpRequest();
+        var loadingContainer = document.getElementById('loading-container');
+        var statusMessage = document.getElementById('status-message');
+        var submitBtn = document.getElementById('submitBtn');
+
+        xhr.open('POST', form.action, true);
+
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                var percentComplete = (e.loaded / e.total) * 100;
+                if (percentComplete === 100) {
+                    statusMessage.style.display = 'block';
+                    statusMessage.textContent = 'File uploaded. Processing...';
+                }
+            }
+        };
+
+        xhr.onloadstart = function(e) {
+            loadingContainer.style.display = 'block';
+            submitBtn.disabled = true;
+        };
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4) {
+                loadingContainer.style.display = 'none';
+                if (xhr.status == 200) {
+                    statusMessage.textContent = 'Video successfully uploaded and processed!';
+                    setTimeout(function() {
+                        window.location.href = "{{ url_for('teacher.edit_course', course_id=course_id) }}";
+                    }, 2000);
+                } else {
+                    statusMessage.textContent = 'Upload failed. Please try again.';
+                    submitBtn.disabled = false;
+                }
+            }
+        };
+
+        xhr.send(formData);
+    };
+    </script>
+</body>
+</html>
+
+
+
+<!-- {% extends "teacher/base_teacher.html" %}
 {% block content %}
 <style>
     @keyframes fly {
@@ -92,4 +293,4 @@ document.getElementById('uploadForm').onsubmit = function(e) {
     xhr.send(formData);
 };
 </script>
-{% endblock %}
+{% endblock %} -->
