@@ -343,6 +343,33 @@ def edit_course(course_id):
     
     return render_template('teacher/edit_course.html', course=course)
 
+
+@bp.route('/update_video_order/<course_id>', methods=['POST'])
+def update_video_order(course_id):
+    if 'user' not in session or session['user']['role'] != 'teacher':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    video_order = request.json
+    course_ref = db.collection('course_details').document(course_id)
+    
+    try:
+        # Update each video's sequence in a transaction
+        @firestore.transactional
+        def update_transaction(transaction):
+            for item in video_order:
+                video_id = item['id']
+                new_seq = item['seq']
+                transaction.update(course_ref, {
+                    f'videos.{video_id}.video_seq': new_seq
+                })
+        
+        db.transaction(update_transaction)
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Error updating video order: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @bp.route('/view_course/<course_id>')
 def view_course(course_id):
     if 'user' not in session or session['user']['role'] != 'teacher':
