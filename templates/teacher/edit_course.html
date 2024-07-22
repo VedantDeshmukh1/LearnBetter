@@ -208,8 +208,8 @@
                 fetch("{{ url_for('teacher.update_video_order', course_id=course.id) }}", {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token() }}'
+                        'Content-Type': 'application/json'
+                       
                     },
                     body: JSON.stringify(videoOrder)
                 })
