@@ -32,7 +32,7 @@
                         <h3 class="font-semibold text-lg mb-1">{{ course.course_name }}</h3>
                         <p class="text-sm text-gray-600">Rating: {{ course.average_rating }}★</p>
                         <p class="text-sm text-gray-600">Duration: {{ course.course_duration }} hours</p>
-                        <p class="text-sm font-bold mt-2">${{ course.course_price }}</p>
+                        <p class="text-sm font-bold mt-2">₹{{ course.course_price }}</p>
                         <a href="{{ url_for('student.course_details', course_id=course.id) }}" class="mt-2 inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">View Course</a>
                     </div>
                 </div>
