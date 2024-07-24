@@ -84,13 +84,15 @@
             {% for course in courses %}
             <div class="course-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200">
                 <a href="{{ url_for('student.course_details', course_id=course.id) }}">
-                    <img src="{{ (course.videos.values()|list|first).thumbnail if course.videos and course.videos.values()|list else url_for('static', filename='images/default_thumbnail.jpg') }}" alt="{{ course.course_name }}" class="w-full h-40 object-cover">
+                    <img src="{{ course.thumbnail }}" alt="{{ course.course_name }}" class="w-full h-40 object-cover">
                     <div class="p-4">
                         <h3 class="font-semibold text-lg mb-1">{{ course.course_name }}</h3>
                         <a href="/teacher/public_profile/{{ course.course_instructor_id }}" class="text-sm text-blue-600 hover:underline">{{ course.course_instructor }}</a>
-                        <p class="text-sm text-gray-600">Rating: {{ course.average_rating }}★</p>
+                        {% if course.average_rating and course.total_ratings > 0 %}
+                            <p class="text-sm text-gray-600">Rating: {{ course.average_rating|round(1) }}★ ({{ course.total_ratings }} reviews)</p>
+                        {% endif %}
                         <p class="text-sm text-gray-600">Duration: {{ course.course_duration }} hours</p>
-                        <p class="text-sm font-bold mt-2">${{ course.course_price }}</p>
+                        <p class="text-sm font-bold mt-2">₹{{ course.course_price }}</p>
                     </div>
                 </a>
             </div>
@@ -171,18 +173,17 @@
                 courses.forEach(course => {
                     const courseCard = document.createElement('div');
                     courseCard.className = 'course-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200';
-                    const thumbnailSrc = course.videos && Object.values(course.videos).length > 0
-                        ? Object.values(course.videos)[0].thumbnail
-                        : "{{ url_for('static', filename='images/default_thumbnail.jpg') }}";
                     courseCard.innerHTML = `
-                        <a href="course/${course.id}">
-                            <img src="${thumbnailSrc}" alt="${course.course_name}" class="w-full h-40 object-cover">
+                        <a href="/course/${course.id}">
+                            <img src="${course.thumbnail}" alt="${course.course_name}" class="w-full h-40 object-cover">
                             <div class="p-4">
                                 <h3 class="font-semibold text-lg mb-1">${course.course_name}</h3>
                                 <a href="/teacher/public_profile/${course.course_instructor_id}" class="text-sm text-blue-600 hover:underline">${course.course_instructor}</a>
-                                <p class="text-sm text-gray-600">Rating: ${course.average_rating}★</p>
+                                ${course.average_rating && course.total_ratings > 0 ? 
+                                    `<p class="text-sm text-gray-600">Rating: ${course.average_rating.toFixed(1)}★ (${course.total_ratings} reviews)</p>` : 
+                                    ''}
                                 <p class="text-sm text-gray-600">Duration: ${course.course_duration} hours</p>
-                                <p class="text-sm font-bold mt-2">$${course.course_price}</p>
+                                <p class="text-sm font-bold mt-2">$₹{course.course_price}</p>
                             </div>
                         </a>
                     `;

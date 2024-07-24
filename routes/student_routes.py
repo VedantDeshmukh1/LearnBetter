@@ -15,7 +15,22 @@ def home():
     for doc in course_docs:
         course = doc.to_dict()
         course['id'] = doc.id
+        
+        # Get the thumbnail of the first video
+        first_video = next((v for v in course['videos'].values() if v['video_seq'] == 1), None)
+        course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
+        
+        # Calculate average rating and total ratings
+        ratings = course.get('ratings', {})
+        if ratings:
+            course['average_rating'] = sum(r['rating'] for r in ratings.values()) / len(ratings)
+            course['total_ratings'] = len(ratings)
+        else:
+            course['average_rating'] = None
+            course['total_ratings'] = 0
+        
         courses.append(course)
+    
     show_more_button = len(courses) == 8
     
     user_courses = []
@@ -190,6 +205,24 @@ def course_details(course_id):
     if course_doc.exists:
         course = course_doc.to_dict()
         course['id'] = course_doc.id
+        
+        # Sort videos by sequence
+        sorted_videos = sorted(course['videos'].values(), key=lambda x: x['video_seq'])
+        course['sorted_videos'] = sorted_videos
+        
+        # Get the thumbnail of the first video
+        first_video = next((v for v in sorted_videos if v['video_seq'] == 1), None)
+        course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
+        
+        # Calculate average rating and total ratings
+        ratings = course.get('ratings', {})
+        if ratings:
+            course['average_rating'] = sum(r['rating'] for r in ratings.values()) / len(ratings)
+            course['total_ratings'] = len(ratings)
+        else:
+            course['average_rating'] = None
+            course['total_ratings'] = 0
+        
         if 'user' in session:
             user_id = session['user_id']
             student_doc = db.collection('student_details').document(user_id).get()
@@ -213,6 +246,19 @@ def search_courses():
         course = doc.to_dict()
         course['id'] = doc.id
         if query in course['course_name'].lower() or query in course['course_instructor'].lower():
+            # Get the thumbnail of the first video
+            first_video = next((v for v in course['videos'].values() if v['video_seq'] == 1), None)
+            course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
+            
+            # Calculate average rating and total ratings
+            ratings = course.get('ratings', {})
+            if ratings:
+                course['average_rating'] = sum(r['rating'] for r in ratings.values()) / len(ratings)
+                course['total_ratings'] = len(ratings)
+            else:
+                course['average_rating'] = None
+                course['total_ratings'] = 0
+            
             courses.append(course)
     return jsonify(courses)
 
