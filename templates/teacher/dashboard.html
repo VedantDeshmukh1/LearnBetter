@@ -1,26 +1,4 @@
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -222,6 +200,7 @@
                 <i data-lucide="settings" class="cursor-pointer" id="settingsDropdown"></i>
                 <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
                     <a href="{{ url_for('teacher.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                    <a href="{{ url_for('teacher.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
                 </div>
             </div>
         </div>
@@ -255,7 +234,7 @@
         </div>
         <div class="dashboard-card">
             <h3>Total Revenue</h3>
-            <p>${{ analytics.total_revenue }}</p>
+            <p>₹{{ analytics.total_revenue }}</p>
         </div>
         <div class="dashboard-card">
             <h3>Average Rating</h3>
@@ -348,7 +327,7 @@
                     borderWidth: 1
                 },
                 {
-                    label: 'Revenue ($)',
+                    label: 'Revenue (₹)',
                     data: coursePerformanceData.map(course => course.total_revenue || 0),
                     backgroundColor: 'rgba(75, 192, 192, 0.5)',
                     borderColor: 'rgb(75, 192, 192)',
@@ -374,7 +353,7 @@
             <td>${course.course_name}</td>
             <td>${course.total_enrollments || 0}</td>
             <td>${course.average_rating ? course.average_rating.toFixed(1) : 'N/A'}</td>
-            <td>$${course.total_revenue || 0}</td>
+            <td>$₹{course.total_revenue || 0}</td>
         `;
         popularCoursesTable.appendChild(tr);
     });
@@ -383,37 +362,4 @@
     lucide.createIcons();
 </script>
 </body>
-</html>s
- 
-
-
-<!-- {% extends "teacher/base_teacher.html" %}
-
-{% block content %}
-<h1>Teacher Dashboard</h1>
-<p>Welcome, {{ user.first_name }} {{ user.last_name }}!</p>
-
-<h2>Analytics</h2>
-<ul>
-    <li>Total Courses: {{ analytics.total_courses }}</li>
-    <li>Total Enrollments: {{ analytics.total_enrollments }}</li>
-    <li>Total Revenue: ${{ analytics.total_revenue }}</li>
-    <li>Average Rating: {{ analytics.average_rating|round(2) }}</li>
-</ul>
-
-<h2>Your Courses</h2>
-<ul>
-{% for course in courses %}
-    <li>
-        {{ course.course_name }}
-        <a href="{{ url_for('teacher.edit_course', course_id=course.id) }}">Edit</a>
-        <a href="{{ url_for('teacher.view_course', course_id=course.id) }}">View</a>
-    </li>
-{% endfor %}
-</ul>
-
-<a href="{{ url_for('teacher.add_course') }}" class="btn">Add New Course</a>
-{% endblock %} 
-
- -->
-
+</html>
