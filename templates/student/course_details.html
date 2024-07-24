@@ -50,6 +50,58 @@
             pointer-events: none;
             user-select: none;
         }
+
+        .description-text {
+            max-height: 4.5em; /* Approximately 3 lines of text */
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            position: relative;
+        }
+
+        .description-expanded {
+            max-height: none;
+        }
+
+        .show-more-btn {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background-color: white;
+            padding: 2px 5px;
+            font-size: 0.875rem;
+            color: #3B82F6;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .show-more-btn:hover {
+            background-color: #EFF6FF;
+            color: #2563EB;
+        }
+
+        .show-more-btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+        }
+
+        .description-text::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 100%;
+            height: 1.5em;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .description-expanded::after {
+            opacity: 0;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -137,7 +189,14 @@
                     <div class="p-4">
                         <h3 class="font-semibold text-lg mb-2">{{ video.title }}</h3>
                         <p class="text-sm text-gray-600 mb-2">Duration: {{ video.duration }}</p>
-                        <p class="text-sm text-gray-600 mb-4">{{ video.description }}</p>
+                        <div class="relative">
+                            <p class="text-sm text-gray-600 mb-4 description-text" id="description-{{ loop.index }}" data-full-description="{{ video.description }}">
+                                {{ video.description[:100] }}{% if video.description|length > 100 %}...{% endif %}
+                            </p>
+                            {% if video.description|length > 100 %}
+                                <button onclick="toggleDescription(this, {{ loop.index }})" class="show-more-btn" id="show-more-{{ loop.index }}">Show more</button>
+                            {% endif %}
+                        </div>
                         {% if 'user' in session and course.id in student_details.purchased_courses %}
                             <a href="{{ url_for('student.video_player', course_id=course.id) }}?video_id={{ video.id }}" class="bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700">Watch Video</a>
                         {% elif loop.index != 1 %}
@@ -252,6 +311,25 @@
         document.querySelector('.video-container iframe').addEventListener('contextmenu', function(e) {
             e.preventDefault();
         });
+
+        function toggleDescription(button, index) {
+            const descriptionElement = document.getElementById(`description-${index}`);
+            const fullDescription = descriptionElement.dataset.fullDescription;
+            
+            if (descriptionElement.classList.contains('description-expanded')) {
+                descriptionElement.classList.remove('description-expanded');
+                descriptionElement.style.maxHeight = '4.5em';
+                setTimeout(() => {
+                    descriptionElement.textContent = fullDescription.slice(0, 100) + '...';
+                    button.textContent = 'Show more';
+                }, 300);
+            } else {
+                descriptionElement.classList.add('description-expanded');
+                descriptionElement.textContent = fullDescription;
+                descriptionElement.style.maxHeight = descriptionElement.scrollHeight + 'px';
+                button.textContent = 'Show less';
+            }
+        }
     </script>
 </body>
 </html>
