@@ -11,12 +11,48 @@ bp = Blueprint('student', __name__)
 def home():
     print("Session data:", session)  # Debug print
     courses = []
-    course_docs = db.collection('course_details').order_by('total_enrollments', direction=firestore.Query.DESCENDING).stream()
+    course_docs = db.collection('course_details').order_by('total_enrollments', direction=firestore.Query.DESCENDING).limit(8).stream()
     for doc in course_docs:
         course = doc.to_dict()
         course['id'] = doc.id
         courses.append(course)
-    return render_template('student/home.html', courses=courses)
+    show_more_button = len(courses) == 8
+    
+    user_courses = []
+    if 'user' in session:
+        user_id = session['user_id']
+        student_ref = db.collection('student_details').document(user_id)
+        student_doc = student_ref.get()
+        if student_doc.exists:
+            purchased_course_ids = student_doc.to_dict().get('purchased_courses', [])
+            user_courses = [course for course in courses if course['id'] in purchased_course_ids]
+            courses = [course for course in courses if course['id'] not in purchased_course_ids]
+    
+    return render_template('student/home.html', courses=courses, user_courses=user_courses, show_more_button=show_more_button)
+
+@bp.route('/get_user_courses')
+def get_user_courses():
+    if 'user' not in session:
+        return jsonify([])
+    
+    user_id = session['user_id']
+    student_ref = db.collection('student_details').document(user_id)
+    student_doc = student_ref.get()
+    
+    if student_doc.exists:
+        purchased_course_ids = student_doc.to_dict().get('purchased_courses', [])
+        progress = student_doc.to_dict().get('progress', {})
+        user_courses = []
+        for course_id in purchased_course_ids:
+            course_doc = db.collection('course_details').document(course_id).get()
+            if course_doc.exists:
+                course = course_doc.to_dict()
+                course['id'] = course_doc.id
+                course['progress'] = progress.get(course_id, {}).get('overall_progress', 0)
+                user_courses.append(course)
+        return jsonify(user_courses)
+    else:
+        return jsonify([])
 
 @bp.route('/load_more_courses/<int:offset>')
 def load_more_courses(offset):

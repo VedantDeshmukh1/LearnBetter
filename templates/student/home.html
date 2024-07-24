@@ -31,7 +31,14 @@
                 <div class="text-2xl font-bold text-blue-600">Magpie Learning</div>
                 <div class="flex space-x-4 items-center">
                     <a href="{{ url_for('student.home') }}" class="text-gray-800 hover:text-blue-600">Explore</a>
-                    <input type="text" id="search-input" placeholder="Search courses or instructors" class="border rounded-md px-3 py-1 w-64">
+                    <div class="relative">
+                        <input type="text" id="search-input" placeholder="Search courses or instructors" class="border rounded-md px-3 py-1 w-64 pr-8">
+                        <button id="clear-search" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
                     {% if 'user' in session %}
                         <a href="{{ url_for('student.my_courses') }}" class="text-gray-800 hover:text-blue-600">My Learning</a>
                         <a href="{{ url_for('student.profile') }}" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center">
@@ -46,7 +53,6 @@
         </nav>
     </header>
 
-    <!-- New hero banner -->
     <div class="bg-blue-600 text-white py-16 animate-fade-in">
         <div class="container mx-auto px-6 text-center">
             <h1 class="text-4xl font-bold mb-4">Welcome to Magpie Learning</h1>
@@ -55,7 +61,6 @@
         </div>
     </div>
 
-    <!-- New About Us section (initially hidden) -->
     <div id="about-us" class="bg-gray-100 py-8 hidden">
         <div class="container mx-auto px-6">
             <h2 class="text-3xl font-bold mb-4">About Us</h2>
@@ -65,23 +70,38 @@
     </div>
 
     <main class="container mx-auto px-6 py-8 flex-grow">
+        {% if 'user' in session and user_courses %}
+        <h2 class="text-2xl font-bold mb-6">Resume Your Courses</h2>
+        <div class="overflow-x-auto mb-12">
+            <div id="user-courses" class="flex space-x-6">
+                <!-- User courses will be populated here -->
+            </div>
+        </div>
+        {% endif %}
+
         <h2 class="text-2xl font-bold mb-6">Most Popular Courses</h2>
-        <div id="popular-courses" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div id="popular-courses" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
             {% for course in courses %}
-                <div class="course-card bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="course-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200">
+                <a href="{{ url_for('student.course_details', course_id=course.id) }}">
                     <img src="{{ (course.videos.values()|list|first).thumbnail if course.videos and course.videos.values()|list else url_for('static', filename='images/default_thumbnail.jpg') }}" alt="{{ course.course_name }}" class="w-full h-40 object-cover">
                     <div class="p-4">
                         <h3 class="font-semibold text-lg mb-1">{{ course.course_name }}</h3>
-                        <p class="text-sm text-gray-600">{{ course.course_instructor }}</p>
+                        <a href="/teacher/public_profile/{{ course.course_instructor_id }}" class="text-sm text-blue-600 hover:underline">{{ course.course_instructor }}</a>
                         <p class="text-sm text-gray-600">Rating: {{ course.average_rating }}★</p>
                         <p class="text-sm text-gray-600">Duration: {{ course.course_duration }} hours</p>
                         <p class="text-sm font-bold mt-2">${{ course.course_price }}</p>
-                        <a href="{{ url_for('student.course_details', course_id=course.id) }}" class="mt-2 inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">View Course</a>
                     </div>
-                </div>
+                </a>
+            </div>
             {% endfor %}
         </div>
-        <button id="load-more" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Show more courses</button>
+        <div id="no-courses-found" class="hidden text-center py-8">
+            <p class="text-xl text-gray-600">No courses found</p>
+        </div>
+        {% if show_more_button %}
+            <button id="load-more" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Show more courses</button>
+        {% endif %}
     </main>
 
     <footer class="bg-gray-800 text-white mt-12">
@@ -133,12 +153,59 @@
     <script>
         function displayCourses(courses, append = false) {
             const courseContainer = document.getElementById('popular-courses');
+            const noCourses = document.getElementById('no-courses-found');
+            const loadMoreBtn = document.getElementById('load-more');
+            
             if (!append) {
                 courseContainer.innerHTML = ''; // Clear existing courses if not appending
             }
+            
+            if (courses.length === 0) {
+                courseContainer.classList.add('hidden');
+                noCourses.classList.remove('hidden');
+                if (loadMoreBtn) loadMoreBtn.classList.add('hidden');
+            } else {
+                courseContainer.classList.remove('hidden');
+                noCourses.classList.add('hidden');
+                
+                courses.forEach(course => {
+                    const courseCard = document.createElement('div');
+                    courseCard.className = 'course-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200';
+                    const thumbnailSrc = course.videos && Object.values(course.videos).length > 0
+                        ? Object.values(course.videos)[0].thumbnail
+                        : "{{ url_for('static', filename='images/default_thumbnail.jpg') }}";
+                    courseCard.innerHTML = `
+                        <a href="course/${course.id}">
+                            <img src="${thumbnailSrc}" alt="${course.course_name}" class="w-full h-40 object-cover">
+                            <div class="p-4">
+                                <h3 class="font-semibold text-lg mb-1">${course.course_name}</h3>
+                                <a href="/teacher/public_profile/${course.course_instructor_id}" class="text-sm text-blue-600 hover:underline">${course.course_instructor}</a>
+                                <p class="text-sm text-gray-600">Rating: ${course.average_rating}★</p>
+                                <p class="text-sm text-gray-600">Duration: ${course.course_duration} hours</p>
+                                <p class="text-sm font-bold mt-2">$${course.course_price}</p>
+                            </div>
+                        </a>
+                    `;
+                    courseContainer.appendChild(courseCard);
+                });
+                
+                if (loadMoreBtn) {
+                    if (courses.length <= 8 || (append && courses.length <= 8)) {
+                        loadMoreBtn.classList.add('hidden');
+                    } else {
+                        loadMoreBtn.classList.remove('hidden');
+                    }
+                }
+            }
+        }
+
+        function populateUserCourses(courses) {
+            const userCoursesContainer = document.getElementById('user-courses');
+            userCoursesContainer.innerHTML = ''; // Clear existing courses
             courses.forEach(course => {
-                const courseCard = document.createElement('div');
-                courseCard.className = 'course-card bg-white rounded-lg shadow-md overflow-hidden';
+                const courseCard = document.createElement('a');
+                courseCard.href = `/course/${course.id}`;
+                courseCard.className = 'flex-shrink-0 w-64 bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200';
                 const thumbnailSrc = course.videos && Object.values(course.videos).length > 0
                     ? Object.values(course.videos)[0].thumbnail
                     : "{{ url_for('static', filename='images/default_thumbnail.jpg') }}";
@@ -146,19 +213,16 @@
                     <img src="${thumbnailSrc}" alt="${course.course_name}" class="w-full h-40 object-cover">
                     <div class="p-4">
                         <h3 class="font-semibold text-lg mb-1">${course.course_name}</h3>
-                        <p class="text-sm text-gray-600">${course.course_instructor}</p>
-                        <p class="text-sm text-gray-600">Rating: ${course.average_rating}★</p>
-                        <p class="text-sm text-gray-600">Duration: ${course.course_duration} hours</p>
-                        <p class="text-sm font-bold mt-2">$${course.course_price}</p>
-                        <a href="/course/${course.id}" class="mt-2 inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">View Course</a>
+                        <p class="text-sm text-gray-600">Progress: ${course.progress}%</p>
                     </div>
                 `;
-                courseContainer.appendChild(courseCard);
+                userCoursesContainer.appendChild(courseCard);
             });
         }
 
         let debounceTimer;
         const searchInput = document.getElementById('search-input');
+        const clearSearch = document.getElementById('clear-search');
         searchInput.addEventListener('input', function() {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
@@ -167,23 +231,32 @@
                     .then(response => response.json())
                     .then(data => {
                         displayCourses(data);
-                        document.getElementById('load-more').style.display = 'none';
                     });
             }, 300); // 300ms delay
         });
 
-        let offset = 8;
-        document.getElementById('load-more').addEventListener('click', function() {
-            fetch(`{{ url_for('student.load_more_courses', offset=0) }}`.replace('0', offset))
-                .then(response => response.json())
-                .then(data => {
-                    displayCourses(data, true); // Append new courses
-                    offset += 8;
-                    if (data.length < 8) {
-                        this.style.display = 'none';
-                    }
-                });
+        clearSearch.addEventListener('click', function() {
+            searchInput.value = '';
+            searchInput.dispatchEvent(new Event('input'));
         });
+
+        let offset = 8;
+        const loadMoreBtn = document.getElementById('load-more');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', function() {
+                fetch(`{{ url_for('student.load_more_courses', offset=0) }}`.replace('0', offset))
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.length > 0) {
+                            displayCourses(data, true); // Append new courses
+                            offset += data.length;
+                        }
+                        if (data.length < 8) {
+                            this.classList.add('hidden');
+                        }
+                    });
+            });
+        }
 
         // Toggle About Us section visibility
         const aboutUsBtn = document.getElementById('about-us-btn');
@@ -205,6 +278,15 @@
             setTimeout(() => {
                 heroSection.style.opacity = '1';
             }, 100);
+
+            // Fetch user courses if user is logged in
+            {% if 'user' in session %}
+            fetch('{{ url_for("student.get_user_courses") }}')
+                .then(response => response.json())
+                .then(data => {
+                    populateUserCourses(data);
+                });
+            {% endif %}
         });
     </script>
 </body>

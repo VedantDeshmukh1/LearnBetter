@@ -239,6 +239,22 @@ def update_profile():
         print(f"Error updating profile: {str(e)}")
         return jsonify({'success': False, 'message': 'Failed to update profile'}), 500
 
+@bp.route('/public_profile/<teacher_id>')
+def public_profile(teacher_id):
+    teacher_doc = db.collection('teacher_details').document(teacher_id).get()
+    if teacher_doc.exists:
+        teacher_data = teacher_doc.to_dict()
+        teacher_data['id'] = teacher_id
+        courses = []
+        course_docs = db.collection('course_details').where('course_instructor_id', '==', teacher_id).stream()
+        for doc in course_docs:
+            course = doc.to_dict()
+            course['id'] = doc.id
+            courses.append(course)
+        return render_template('teacher/public_profile.html', teacher=teacher_data, courses=courses)
+    else:
+        flash('Teacher not found', 'error')
+        return redirect(url_for('student.home'))
 
 @bp.route('/dashboard')
 def dashboard():
