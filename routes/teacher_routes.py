@@ -402,7 +402,6 @@ def add_video(course_id):
     if 'user' not in session or session['user']['role'] != 'teacher':
         return redirect(url_for('teacher.login'))
     
-    # Fetch course details to get the course name and current video count
     course_ref = db.collection('course_details').document(course_id)
     course = course_ref.get().to_dict()
     course_name = course.get('course_name', 'Unknown')
@@ -416,57 +415,46 @@ def add_video(course_id):
             flash('Video title must be at least 2 characters long', 'error')
             return render_template('teacher/add_video.html', course_id=course_id)
         
-        # Handle file upload
         video_file = request.files['video_file']
-        if video_file:
-            filename = secure_filename(video_file.filename)
-            file_extension = os.path.splitext(filename)[1]
-            
-            # Generate a unique filename for the video
-            video_id = generate_video_id()
-            unique_filename = f"{video_id}{file_extension}"
-            
-            # Save file temporarily
-            temp_path = f"temp_{unique_filename}"
-            video_file.save(temp_path)
-            
-            # Extract video duration
-            video_duration = get_video_duration(temp_path)
-            if video_duration is None:
-                os.remove(temp_path)
-                flash('Failed to process video. Please try again or use a different file.', 'error')
-                return render_template('teacher/add_video.html', course_id=course_id)
-            
-            # Upload video to Google Drive
-            video_url = upload_to_drive(temp_path, unique_filename, course_id, course_name)
-            
-            # Remove temporary file
-            os.remove(temp_path)
-            
-            if not video_url:
-                flash('Failed to upload video', 'error')
-                return render_template('teacher/add_video.html', course_id=course_id)
-
-            # Get the thumbnail URL
-            drive_file_id = get_drive_file_id(video_url)
-            thumbnail_url = f"https://drive.google.com/thumbnail?id={drive_file_id}"
-        else:
+        if not video_file:
             flash('No video file uploaded', 'error')
             return render_template('teacher/add_video.html', course_id=course_id)
         
-        # Increment the video sequence number
+        filename = secure_filename(video_file.filename)
+        file_extension = os.path.splitext(filename)[1]
+        video_id = generate_video_id()
+        unique_filename = f"{video_id}{file_extension}"
+        
+        temp_path = f"temp_{unique_filename}"
+        video_file.save(temp_path)
+        
+        video_duration = get_video_duration(temp_path)
+        if video_duration is None:
+            os.remove(temp_path)
+            flash('Failed to process video. Please try again or use a different file.', 'error')
+            return render_template('teacher/add_video.html', course_id=course_id)
+        
+        video_url = upload_to_drive(temp_path, unique_filename, course_id, course_name)
+        os.remove(temp_path)
+        
+        if not video_url:
+            flash('Failed to upload video', 'error')
+            return render_template('teacher/add_video.html', course_id=course_id)
+
+        drive_file_id = get_drive_file_id(video_url)
+        thumbnail_url = f"https://drive.google.com/thumbnail?id={drive_file_id}"
+        
         video_seq = current_video_count + 1
         
         video_data = {
             'title': video_title,
-            'duration': video_duration,
+            'duration': video_duration,  # This is now in HH:MM:SS format
             'url': video_url,
             'description': video_description,
             'thumbnail': thumbnail_url,
-            'video_seq': video_seq  # Add the video sequence number
+            'video_seq': video_seq
         }
         
-        # Update course with new video
         course_ref.update({
             f'videos.{video_id}': video_data
         })
@@ -544,14 +532,21 @@ def edit_video(course_id, video_id):
     return render_template('teacher/edit_video.html', course_id=course_id, video_id=video_id, video=video)
 
 def get_video_duration(file_path):
-    """Extract video duration using OpenCV."""
+    """Extract video duration using OpenCV and return in HH:MM:SS format."""
     try:
         video = cv2.VideoCapture(file_path)
         fps = video.get(cv2.CAP_PROP_FPS)
         frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         duration = frame_count / fps if fps > 0 else 0
         video.release()
-        return int(duration)
+        
+        # Convert duration to hours, minutes, seconds
+        hours = int(duration // 3600)
+        minutes = int((duration % 3600) // 60)
+        seconds = int(duration % 60)
+        
+        # Format as HH:MM:SS
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
     except Exception as e:
         print(f"Error getting video duration: {str(e)}")
         return None

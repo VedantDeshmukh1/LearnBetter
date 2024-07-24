@@ -166,7 +166,7 @@
                     {% for video_id, video in course.videos.items()|sort(attribute='1.video_seq') %}
                         <li class="video-item" data-id="{{ video_id }}">
                             <span class="video-seq">{{ video.video_seq }}.</span>
-                            <span>{{ video.title }} ({{ video.duration }} minutes)</span>
+                            <span>{{ video.title }} ({{ video.duration }})</span>
                             <div class="video-actions">
                                 <a href="{{ url_for('teacher.edit_video', course_id=course.id, video_id=video_id) }}" class="btn btn-outline">Edit</a>
                                 <form action="{{ url_for('teacher.delete_video', course_id=course.id, video_id=video_id) }}" method="POST" style="display: inline;">
