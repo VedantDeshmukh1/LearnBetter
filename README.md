@@ -1,5 +1,8 @@
 # LearnBetter
 
+<img align="right" src="images/svgviewer-output.svg" alt="Alt text">
+
+
 [SVG Diagram: Magpie Learning Platform Architecture]
 
 1. Main Application (app.py)
