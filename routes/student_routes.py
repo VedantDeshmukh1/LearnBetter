@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify, send_file
 from firebase_admin import firestore
 from config import db, rdb, auth
 from utils import validate_email, update_course_ratings, generate_username, generate_password, send_email
 import re
+import requests
 
 bp = Blueprint('student', __name__)
 
@@ -223,6 +224,30 @@ def course_details(course_id):
             course['average_rating'] = None
             course['total_ratings'] = 0
         
+        # Get reviews
+        course['reviews'] = []
+        for student_id, rating_data in ratings.items():
+            if 'review' in rating_data:
+                student_doc = db.collection('student_details').document(student_id).get()
+                student_name = student_doc.to_dict()['name'] if student_doc.exists else 'Anonymous'
+                course['reviews'].append({
+                    'student_name': student_name,
+                    'rating': rating_data['rating'],
+                    'comment': rating_data['review']
+                })
+        
+        # Get related courses (people also purchased)
+        related_courses = []
+        related_course_docs = db.collection('course_details').order_by('total_enrollments', direction=firestore.Query.DESCENDING).limit(5).stream()
+        for doc in related_course_docs:
+            if doc.id != course_id:
+                related_course = doc.to_dict()
+                related_course['id'] = doc.id
+                # Get the thumbnail of the first video
+                first_video = next((v for v in related_course['videos'].values() if v['video_seq'] == 1), None)
+                related_course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
+                related_courses.append(related_course)
+        
         if 'user' in session:
             user_id = session['user_id']
             student_doc = db.collection('student_details').document(user_id).get()
@@ -232,7 +257,8 @@ def course_details(course_id):
                 student_details = None
         else:
             student_details = None
-        return render_template('student/course_details.html', course=course, student_details=student_details)
+        
+        return render_template('student/course_details.html', course=course, student_details=student_details, related_courses=related_courses)
     else:
         flash('Course not found', 'error')
         return redirect(url_for('student.home'))

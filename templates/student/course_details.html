@@ -4,237 +4,254 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ course.course_name }} - Magpie Learning</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
         body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
         }
-        .container {
-            width: 80%;
-            margin: auto;
-            overflow: hidden;
-            padding: 20px;
+
+        .course-card {
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
         }
-        .course-container {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 2rem;
-            gap: 2rem;
-        }
-        .course-details-card, .video-container {
-            flex: 1;
-            min-width: 0;
-        }
-        .course-details-card {
-            padding: 1.5rem;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            background-color: #fff;
-        }
-        .course-details-card h1 {
-            margin-top: 0;
-            color: #333;
-        }
-        .video-container {
-            aspect-ratio: 16 / 9;
-            max-height: 400px;
-        }
-        #video-player {
-            width: 100%;
-            height: 100%;
-            border: none;
-            border-radius: 8px;
-        }
-        .video-list {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            background-color: #fff;
-        }
-        .video-list h2 {
-            margin-top: 0;
-            color: #333;
-        }
-        .video-grid {
-            display: flex;
-            overflow-x: auto;
-            gap: 1rem;
-            padding-bottom: 1rem;
-        }
+
         .video-item {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            overflow: hidden;
-            transition: box-shadow 0.3s ease;
-            flex: 0 0 auto;
-            width: 200px;
+            transition: transform 0.3s ease-in-out;
         }
         .video-item:hover {
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-5px);
         }
-        .video-thumbnail {
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            object-fit: cover;
-        }
-        .video-info {
-            padding: 1rem;
-        }
-        .video-info h3 {
-            margin-top: 0;
-            font-size: 1rem;
-            color: #333;
-        }
-        .video-description {
-            font-size: 0.9rem;
-            color: #666;
-            margin-top: 0.5rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
+
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
             overflow: hidden;
         }
-        .btn {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 4px;
-            font-size: 1rem;
-            cursor: pointer;
-            text-decoration: none;
-            text-align: center;
-            transition: background-color 0.3s ease;
-        }
-        .btn-primary {
-            background-color: #007bff;
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #0056b3;
-        }
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-        .btn-secondary:hover {
-            background-color: #545b62;
-        }
-        nav {
-            background-color: #333;
-            color: #fff;
-            padding: 1rem;
-        }
-        nav ul {
-            padding: 0;
-            list-style: none;
-            display: flex;
-            justify-content: space-around;
-        }
-        nav ul li a {
-            color: #fff;
-            text-decoration: none;
-        }
-        .alert {
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 4px;
-        }
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .alert-error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        footer {
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            padding: 1rem;
-            position: fixed;
-            bottom: 0;
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
+            height: 100%;
+        }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+            user-select: none;
         }
     </style>
 </head>
-<body>
-    <nav>
-        <ul>
-            <li><a href="{{ url_for('student.home') }}">Home</a></li>
-            {% if 'user' in session %}
-                <li><a href="{{ url_for('student.my_courses') }}">My Courses</a></li>
-                <li><a href="{{ url_for('student.my_reviews') }}">My Reviews</a></li>
-                <li><a href="{{ url_for('student.profile') }}">My Profile</a></li>
-                <li><a href="{{ url_for('student.logout') }}">Logout</a></li>
-            {% else %}
-                <li><a href="{{ url_for('student.register') }}">Register</a></li>
-                <li><a href="{{ url_for('student.login') }}">Login</a></li>
-                <li><a href="{{ url_for('teacher.login') }}">Teacher Login</a></li>
-            {% endif %}
-        </ul>
-    </nav>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-    <div class="container">
-        <div class="course-container">
-            <!-- Course details card -->
-            <div class="course-details-card">
-                <h1>{{ course.course_name }}</h1>
-                <p><strong>Instructor:</strong> {{ course.course_instructor }}</p>
-                <p><strong>Duration:</strong> {{ course.course_duration }} hours</p>
-                <p>{{ course.course_description }}</p>
-                
-                {% if 'user' in session %}
-                    {% if course.id in student_details.purchased_courses %}
-                        <a href="{{ url_for('student.video_player', course_id=course.id) }}" class="btn btn-primary">Go to Course</a>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <header class="bg-white shadow-md">
+        <nav class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <div class="text-2xl font-bold text-blue-600">Magpie Learning</div>
+                <div class="flex space-x-4 items-center">
+                    <a href="{{ url_for('student.home') }}" class="text-gray-800 hover:text-blue-600">Explore</a>
+                    {% if 'user' in session %}
+                        <a href="{{ url_for('student.my_courses') }}" class="text-gray-800 hover:text-blue-600">My Learning</a>
+                        <a href="{{ url_for('student.dashboard') }}" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center">
+                            {{ session['user']['first_name'][0] }}
+                        </a>
                     {% else %}
-                        <form action="{{ url_for('student.purchase_course', course_id=course.id) }}" method="POST">
-                            <button type="submit" class="btn btn-primary">Purchase Course</button>
-                        </form>
+                        <a href="{{ url_for('student.login') }}" class="text-gray-800 hover:text-blue-600">Login</a>
+                        <a href="{{ url_for('teacher.login') }}" class="text-gray-800 hover:text-blue-600">Teacher Login</a>
                     {% endif %}
-                {% else %}
-                    <a href="{{ url_for('student.login') }}" class="btn btn-secondary">Login to Purchase</a>
-                {% endif %}
+                </div>
             </div>
+        </nav>
+    </header>
 
-            <!-- Video player -->
-            <div class="video-container">
-                <iframe id="video-player" src="{{ (course.videos.values()|list)[0].url }}" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+    <main class="container mx-auto px-6 py-8 flex-grow">
+        <div class="course-card p-6 mb-8">
+            <div class="flex flex-col md:flex-row">
+                <div class="md:w-2/3 pr-8">
+                    <h1 class="text-3xl font-bold mb-4">{{ course.course_name }}</h1>
+                    <p class="text-gray-600 mb-4">{{ course.course_description }}</p>
+                    <div class="flex items-center mb-4">
+                        <i data-lucide="user" class="mr-2"></i>
+                        <span class="text-gray-700">Instructor: 
+                            <a href="{{ url_for('teacher.public_profile', teacher_id=course.course_instructor_id) }}" class="text-blue-600 hover:underline">
+                                {{ course.course_instructor }}
+                            </a>
+                        </span>
+                    </div>
+                    <div class="flex items-center mb-4">
+                        <i data-lucide="clock" class="mr-2"></i>
+                        <span class="text-gray-700">Duration: {{ course.course_duration }} hours</span>
+                    </div>
+                    {% if course.average_rating %}
+                        <div class="flex items-center mb-4">
+                            <i data-lucide="star" class="mr-2 text-yellow-400"></i>
+                            <span class="text-gray-700">Rating: {{ course.average_rating|round(1) }} ({{ course.total_ratings }} reviews)</span>
+                        </div>
+                    {% endif %}
+                    {% if 'user' in session %}
+                        {% if course.id in student_details.purchased_courses %}
+                            <a href="{{ url_for('student.video_player', course_id=course.id) }}" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Go to Course</a>
+                        {% else %}
+                            <form action="{{ url_for('student.purchase_course', course_id=course.id) }}" method="POST">
+                                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Purchase Course (₹{{ course.course_price }})</button>
+                            </form>
+                        {% endif %}
+                    {% else %}
+                        <a href="{{ url_for('student.login') }}" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Login to Purchase</a>
+                    {% endif %}
+                </div>
+                <div class="md:w-1/2 mt-6 md:mt-0">
+                    <div class="video-container">
+                        {% if course.sorted_videos %}
+                            {% set preview_video = course.sorted_videos[0] %}
+                            {% set video_id = preview_video.url.split('/')[-2] %}
+                            <iframe src="https://drive.google.com/file/d/{{ video_id }}/preview"
+                                    frameborder="0"
+                                    allowfullscreen
+                                    sandbox="allow-scripts allow-same-origin"
+                                    class="rounded-lg shadow-lg">
+                            </iframe>
+                            <div class="watermark">{{ course.course_name }}@Magpie Learning</div>
+                        {% else %}
+                            <p class="text-gray-600">No preview video available</p>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Video list -->
-        <div class="video-list">
-            <h2>Course Videos</h2>
-            <div class="video-grid">
-                {% for video in course.videos.values() %}
-                    <div class="video-item">
-                        <img src="{{ video.thumbnail }}" alt="{{ video.title }} thumbnail" class="video-thumbnail">
-                        <div class="video-info">
-                            <h3>{{ video.title }}</h3>
-                            <p><strong>Duration:</strong> {{ video.duration }} </p>
-                            <p class="video-description">{{ video.description }}</p>
+        <h2 class="text-2xl font-bold mb-4">Course Content</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+            {% for video in course.sorted_videos %}
+                <div class="video-item course-card overflow-hidden">
+                    <img src="{{ video.thumbnail }}" alt="{{ video.title }} thumbnail" class="w-full h-40 object-cover">
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg mb-2">{{ video.title }}</h3>
+                        <p class="text-sm text-gray-600 mb-2">Duration: {{ video.duration }}</p>
+                        <p class="text-sm text-gray-600 mb-4">{{ video.description }}</p>
+                        {% if 'user' in session and course.id in student_details.purchased_courses %}
+                            <a href="{{ url_for('student.video_player', course_id=course.id) }}?video_id={{ video.id }}" class="bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700">Watch Video</a>
+                        {% elif loop.index != 1 %}
+                            <button onclick="showPurchaseMessage()" class="bg-gray-300 text-gray-700 px-3 py-1 rounded-md text-sm cursor-not-allowed">Watch Video</button>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <h2 class="text-2xl font-bold mb-4">Student Reviews</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            {% for review in course.reviews %}
+                <div class="course-card p-4">
+                    <div class="flex items-center mb-2">
+                        <div class="w-10 h-10 bg-blue-600 rounded-full text-white flex items-center justify-center mr-3">
+                            {{ review.student_name[0] }}
+                        </div>
+                        <div>
+                            <h3 class="font-semibold">{{ review.student_name }}</h3>
+                            <div class="flex items-center">
+                                {% for _ in range(review.rating|int) %}
+                                    <i data-lucide="star" class="w-4 h-4 text-yellow-400"></i>
+                                {% endfor %}
+                                {% for _ in range(5 - review.rating|int) %}
+                                    <i data-lucide="star" class="w-4 h-4 text-gray-300"></i>
+                                {% endfor %}
+                            </div>
                         </div>
                     </div>
-                {% endfor %}
+                    <p class="text-gray-600">{{ review.comment }}</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <h2 class="text-2xl font-bold mb-6">People Also Purchased</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+            {% for related_course in related_courses[:4] %}
+            <div class="course-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200">
+                <a href="{{ url_for('student.course_details', course_id=related_course.id) }}">
+                    <img src="{{ related_course.thumbnail }}" alt="{{ related_course.course_name }}" class="w-full h-40 object-cover">
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg mb-1">{{ related_course.course_name }}</h3>
+                        <a href="{{ url_for('teacher.public_profile', teacher_id=related_course.course_instructor_id) }}" class="text-sm text-blue-600 hover:underline">{{ related_course.course_instructor }}</a>
+                        {% if related_course.average_rating and related_course.total_ratings > 0 %}
+                            <p class="text-sm text-gray-600">Rating: {{ related_course.average_rating|round(1) }}★ ({{ related_course.total_ratings }} reviews)</p>
+                        {% endif %}
+                        <p class="text-sm text-gray-600">Duration: {{ related_course.course_duration }} hours</p>
+                        <p class="text-sm font-bold mt-2">₹{{ related_course.course_price }}</p>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="container mx-auto px-6 py-8">
+            <div class="flex flex-wrap justify-between">
+                <div class="w-full md:w-1/4 mb-6 md:mb-0">
+                    <h3 class="text-lg font-semibold mb-4">Magpie Learning</h3>
+                    <ul>
+                        <li><a href="#" class="hover:text-blue-400">About</a></li>
+                        <li><a href="#" class="hover:text-blue-400">What We Offer</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Leadership</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Careers</a></li>
+                    </ul>
+                </div>
+                <div class="w-full md:w-1/4 mb-6 md:mb-0">
+                    <h3 class="text-lg font-semibold mb-4">Community</h3>
+                    <ul>
+                        <li><a href="#" class="hover:text-blue-400">Learners</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Partners</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Developers</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Beta Testers</a></li>
+                    </ul>
+                </div>
+                <div class="w-full md:w-1/4 mb-6 md:mb-0">
+                    <h3 class="text-lg font-semibold mb-4">Connect</h3>
+                    <ul>
+                        <li><a href="#" class="hover:text-blue-400">Blog</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Tech Blog</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Teaching Center</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="w-full md:w-1/4">
+                    <h3 class="text-lg font-semibold mb-4">Legal</h3>
+                    <ul>
+                        <li><a href="#" class="hover:text-blue-400">Terms of Use</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Cookie Policy</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Accessibility</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-8 text-center">
+                <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
             </div>
         </div>
-    </div>
-    
+    </footer>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        function showPurchaseMessage() {
+            alert("Please purchase the course to watch the videos.");
+        }
+
+        // Disable right-click on the iframe
+        document.querySelector('.video-container iframe').addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+    </script>
 </body>
 </html>
