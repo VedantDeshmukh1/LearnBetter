@@ -329,6 +329,9 @@ def video_player(course_id):
     videos = []
     for video_id, video_data in course['videos'].items():
         video_data['id'] = video_id
+        video_data['description'] = video_data.get('description', 'No description available.')
+        video_data['duration'] = video_data.get('duration', 'Duration not available')
+        video_data['date'] = video_data.get('date', 'Date not available')
         videos.append(video_data)
 
     # Sort videos by sequence
@@ -477,13 +480,15 @@ def update_progress(course_id, video_id):
     if course_id not in student_data['progress']:
         student_data['progress'][course_id] = {'overall_progress': 0, 'videos_completed': {}}
     
+    # Update the completed status of the video
     student_data['progress'][course_id]['videos_completed'][video_id] = True
-    student_data['progress'][course_id]['overall_progress'] = progress
-    student_data['last_accessed'] = firestore.SERVER_TIMESTAMP
+    
+    # Update overall progress
+    student_data['progress'][course_id]['overall_progress'] = round(progress, 2)
     
     student_ref.update(student_data)
     
-    return jsonify({'success': True})
+    return jsonify({'success': True, 'progress': student_data['progress'][course_id]['overall_progress']})
 
 @bp.route('/save_video_progress', methods=['POST'])
 def save_video_progress():
@@ -496,25 +501,16 @@ def save_video_progress():
     current_time = data['current_time']
     course_id = data['course_id']
 
-    student_ref = db.collection('student_details').document(user_id)
-    student_doc = student_ref.get()
-
-    if not student_doc.exists:
-        return jsonify({'error': 'Student data not found'}), 404
-
-    student_data = student_doc.to_dict()
-
-    if 'progress' not in student_data:
-        student_data['progress'] = {}
-    if course_id not in student_data['progress']:
-        student_data['progress'][course_id] = {'overall_progress': 0, 'videos_completed': {}, 'video_progress': {}}
-    if 'video_progress' not in student_data['progress'][course_id]:
-        student_data['progress'][course_id]['video_progress'] = {}
-
-    student_data['progress'][course_id]['video_progress'][video_id] = current_time
-    student_ref.update(student_data)
+    # We'll store this information in memory or a separate database
+    # Instead of Firestore, for example:
+    video_progress[user_id] = video_progress.get(user_id, {})
+    video_progress[user_id][course_id] = video_progress[user_id].get(course_id, {})
+    video_progress[user_id][course_id][video_id] = current_time
 
     return jsonify({'success': True})
+
+# Add this at the top of your file
+video_progress = {}
 
 @bp.route('/get_video_progress/<video_id>')
 def get_video_progress(video_id):
@@ -524,15 +520,7 @@ def get_video_progress(video_id):
     user_id = session['user_id']
     course_id = request.args.get('course_id')
 
-    student_ref = db.collection('student_details').document(user_id)
-    student_doc = student_ref.get()
-
-    if not student_doc.exists:
-        return jsonify({'timestamp': 0})
-
-    student_data = student_doc.to_dict()
-
-    timestamp = student_data.get('progress', {}).get(course_id, {}).get('video_progress', {}).get(video_id, 0)
+    timestamp = video_progress.get(user_id, {}).get(course_id, {}).get(video_id, 0)
     return jsonify({'timestamp': timestamp})
 
 @bp.route('/rate_course/<course_id>', methods=['GET', 'POST'])

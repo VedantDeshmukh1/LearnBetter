@@ -60,7 +60,14 @@
     </header>
 
     <main class="container mx-auto px-6 py-8 flex-grow">
-        <h1 class="text-3xl font-bold mb-6">{{ course.course_name }}</h1>
+        <div class="flex items-center mb-6">
+            <a href="{{ url_for('student.course_details', course_id=course.id) }}" class="text-blue-600 hover:text-blue-800 mr-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-3xl font-bold">{{ course.course_name }}</h1>
+        </div>
         <div class="flex flex-col lg:flex-row space-y-6 lg:space-y-0 lg:space-x-8">
             <div class="lg:w-3/4">
                 <div class="video-container mb-6">
@@ -76,7 +83,7 @@
                 <h3 class="text-xl font-semibold mb-4">Course Videos</h3>
                 <div id="video-list" class="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto pr-4">
                     {% for video in videos %}
-                        <div class="video-item flex items-center justify-between p-4 bg-white rounded-lg shadow-sm cursor-pointer hover:bg-gray-50" data-video-id="{{ video.id }}" data-video-url="{{ video.url }}">
+                        <div class="video-item flex items-center justify-between p-4 bg-white rounded-lg shadow-sm cursor-pointer hover:bg-gray-50" data-video-id="{{ video.id }}" data-video-url="{{ video.url }}" data-video-title="{{ video.title }}" data-video-description="{{ video.description }}">
                             <div class="flex items-center space-x-3">
                                 <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                                     <i data-lucide="play" class="w-5 h-5 text-blue-600"></i>
@@ -97,6 +104,15 @@
         </div>
     </main>
 
+    <script>
+        // ... (existing script content) ...
+
+        
+
+        // ... (rest of the script remains the same) ...
+    </script>
+</body>
+</html>
     <footer class="bg-gray-800 text-white mt-12">
         <div class="container mx-auto px-6 py-4">
             <p class="text-center">&copy; 2024 Magpie Learning. All rights reserved.</p>
@@ -118,10 +134,45 @@
 
         function updateVideoSrc(videoId, videoUrl) {
             if (currentVideoId && !completedVideos.has(currentVideoId)) {
-                if (confirm('Have you completed the current video?')) {
-                    markVideoAsComplete(currentVideoId);
-                }
+                showCompletionPopup(currentVideoId, videoId, videoUrl);
+            } else {
+                changeVideo(videoId, videoUrl);
             }
+        }
+
+        function showCompletionPopup(currentVideoId, newVideoId, newVideoUrl) {
+            const popup = document.createElement('div');
+            popup.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            popup.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4">Video Completion</h3>
+                    <p class="mb-4">Have you completed the current video?</p>
+                    <div class="flex justify-end space-x-4">
+                        <button class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600" id="completed-btn">Completed</button>
+                        <button class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600" id="not-completed-btn">Not completed yet</button>
+                        <button class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400" id="cancel-btn">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(popup);
+
+            document.getElementById('completed-btn').addEventListener('click', () => {
+                markVideoAsComplete(currentVideoId);
+                changeVideo(newVideoId, newVideoUrl);
+                document.body.removeChild(popup);
+            });
+
+            document.getElementById('not-completed-btn').addEventListener('click', () => {
+                changeVideo(newVideoId, newVideoUrl);
+                document.body.removeChild(popup);
+            });
+
+            document.getElementById('cancel-btn').addEventListener('click', () => {
+                document.body.removeChild(popup);
+            });
+        }
+
+        function changeVideo(videoId, videoUrl) {
             const videoIdFromUrl = videoUrl.split('/')[5];
             videoPlayer.src = `https://drive.google.com/file/d/${videoIdFromUrl}/preview`;
             currentVideoId = videoId;
@@ -132,10 +183,21 @@
 
         function updateVideoInfo(videoId) {
             const videoItem = document.querySelector(`.video-item[data-video-id="${videoId}"]`);
-            currentVideoTitle.textContent = videoItem.querySelector('h4').textContent;
-            currentVideoDescription.textContent = videoItem.querySelector('p').textContent;
-            updateMarkCompleteButton(videoId);
+            const videoTitle = videoItem.getAttribute('data-video-title');
+            const videoDescription = videoItem.getAttribute('data-video-description');
+            document.getElementById('current-video-title').textContent = videoTitle;
+            document.getElementById('current-video-description').textContent = videoDescription;
         }
+
+        // Initialize the first video
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const firstVideo = document.querySelector('.video-item');
+            if (firstVideo) {
+                const videoId = firstVideo.getAttribute('data-video-id');
+                const videoUrl = firstVideo.getAttribute('data-video-url');
+                updateVideoSrc(videoId, videoUrl);
+            }
+        });
 
         function updateMarkCompleteButton(videoId) {
             if (completedVideos.has(videoId)) {
