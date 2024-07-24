@@ -41,7 +41,7 @@
                     </div>
                     {% if 'user' in session %}
                         <a href="{{ url_for('student.my_courses') }}" class="text-gray-800 hover:text-blue-600">My Learning</a>
-                        <a href="{{ url_for('student.profile') }}" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center">
+                        <a href="{{ url_for('student.dashboard') }}" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center">
                             {{ session['user']['first_name'][0] }}
                         </a>
                     {% else %}
@@ -159,7 +159,7 @@
             const loadMoreBtn = document.getElementById('load-more');
             
             if (!append) {
-                courseContainer.innerHTML = ''; // Clear existing courses if not appending
+                courseContainer.innerHTML = '';
             }
             
             if (courses.length === 0) {
@@ -174,16 +174,16 @@
                     const courseCard = document.createElement('div');
                     courseCard.className = 'course-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200';
                     courseCard.innerHTML = `
-                        <a href="/course/${course.id}">
+                        <a href="{{ url_for('student.course_details', course_id='') }}${course.id}">
                             <img src="${course.thumbnail}" alt="${course.course_name}" class="w-full h-40 object-cover">
                             <div class="p-4">
                                 <h3 class="font-semibold text-lg mb-1">${course.course_name}</h3>
-                                <a href="/teacher/public_profile/${course.course_instructor_id}" class="text-sm text-blue-600 hover:underline">${course.course_instructor}</a>
+                                <a href="{{ url_for('teacher.public_profile', teacher_id='') }}${course.course_instructor_id}" class="text-sm text-blue-600 hover:underline">${course.course_instructor}</a>
                                 ${course.average_rating && course.total_ratings > 0 ? 
                                     `<p class="text-sm text-gray-600">Rating: ${course.average_rating.toFixed(1)}★ (${course.total_ratings} reviews)</p>` : 
                                     ''}
                                 <p class="text-sm text-gray-600">Duration: ${course.course_duration} hours</p>
-                                <p class="text-sm font-bold mt-2">$₹{course.course_price}</p>
+                                <p class="text-sm font-bold mt-2">₹${course.course_price}</p>
                             </div>
                         </a>
                     `;
@@ -191,21 +191,17 @@
                 });
                 
                 if (loadMoreBtn) {
-                    if (courses.length <= 8 || (append && courses.length <= 8)) {
-                        loadMoreBtn.classList.add('hidden');
-                    } else {
-                        loadMoreBtn.classList.remove('hidden');
-                    }
+                    loadMoreBtn.classList.toggle('hidden', courses.length <= 8 || (append && courses.length <= 8));
                 }
             }
         }
 
         function populateUserCourses(courses) {
             const userCoursesContainer = document.getElementById('user-courses');
-            userCoursesContainer.innerHTML = ''; // Clear existing courses
+            userCoursesContainer.innerHTML = '';
             courses.forEach(course => {
                 const courseCard = document.createElement('a');
-                courseCard.href = `/course/${course.id}`;
+                courseCard.href = `{{ url_for('student.course_details', course_id='') }}${course.id}`;
                 courseCard.className = 'flex-shrink-0 w-64 bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200';
                 const thumbnailSrc = course.videos && Object.values(course.videos).length > 0
                     ? Object.values(course.videos)[0].thumbnail
@@ -221,9 +217,10 @@
             });
         }
 
-        let debounceTimer;
         const searchInput = document.getElementById('search-input');
         const clearSearch = document.getElementById('clear-search');
+        let debounceTimer;
+
         searchInput.addEventListener('input', function() {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
@@ -233,7 +230,7 @@
                     .then(data => {
                         displayCourses(data);
                     });
-            }, 300); // 300ms delay
+            }, 300);
         });
 
         clearSearch.addEventListener('click', function() {
@@ -249,7 +246,7 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.length > 0) {
-                            displayCourses(data, true); // Append new courses
+                            displayCourses(data, true);
                             offset += data.length;
                         }
                         if (data.length < 8) {
@@ -259,7 +256,6 @@
             });
         }
 
-        // Toggle About Us section visibility
         const aboutUsBtn = document.getElementById('about-us-btn');
         const aboutUsSection = document.getElementById('about-us');
         
@@ -270,7 +266,6 @@
             }
         });
 
-        // Add fade-in animation
         const heroSection = document.querySelector('.animate-fade-in');
         heroSection.style.opacity = '0';
         heroSection.style.transition = 'opacity 1s ease-in-out';
@@ -280,7 +275,6 @@
                 heroSection.style.opacity = '1';
             }, 100);
 
-            // Fetch user courses if user is logged in
             {% if 'user' in session %}
             fetch('{{ url_for("student.get_user_courses") }}')
                 .then(response => response.json())

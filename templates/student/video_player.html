@@ -97,7 +97,7 @@
         let courseId = '{{ course.id }}';
 
         function updateVideoSrc(videoId, videoUrl, timestamp = 0) {
-            videoPlayer.src = `${videoUrl}?t=${Math.floor(timestamp)}s`;
+            videoPlayer.src = `${videoUrl}#t=${Math.floor(timestamp)}`;
             currentVideoId = videoId;
         }
 
@@ -124,7 +124,6 @@
                 const videoUrl = item.getAttribute('data-video-url');
                 const videoTitleText = item.querySelector('h3').textContent;
 
-                updateVideoSrc(videoId, videoUrl);
                 videoTitle.textContent = videoTitleText;
 
                 videoItems.forEach(v => v.classList.remove('active'));
@@ -138,17 +137,11 @@
             });
         });
 
-        // Save video progress every 5 seconds
-        setInterval(() => {
+        videoPlayer.addEventListener('timeupdate', () => {
             if (currentVideoId) {
-                const currentTime = videoPlayer.contentWindow.postMessage({ type: 'getCurrentTime' }, '*');
-                window.addEventListener('message', function(event) {
-                    if (event.data.type === 'currentTime') {
-                        saveVideoProgress(currentVideoId, event.data.time);
-                    }
-                });
+                saveVideoProgress(currentVideoId, videoPlayer.currentTime);
             }
-        }, 5000);
+        });
 
         // Load initial video
         if (videoItems.length > 0) {

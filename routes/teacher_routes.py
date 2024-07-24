@@ -182,12 +182,12 @@ def profile():
         teacher_data = teacher_doc.to_dict()
         
         # Calculate additional statistics
-        courses_ref = db.collection('courses').where('teacher_id', '==', user_id)
+        courses_ref = db.collection('course_details').where('course_instructor_id', '==', user_id)
         courses = list(courses_ref.stream())
         
         teacher_data['courses_created'] = len(courses)
-        teacher_data['total_students'] = sum(course.to_dict().get('enrolled_students', 0) for course in courses)
-        teacher_data['total_revenue'] = sum(course.to_dict().get('revenue', 0) for course in courses)
+        teacher_data['total_students'] = sum(course.to_dict().get('total_enrollments', 0) for course in courses)
+        teacher_data['total_revenue'] = sum(course.to_dict().get('total_revenue', 0) for course in courses)
         
         # Calculate average rating
         ratings = [course.to_dict().get('average_rating', 0) for course in courses if course.to_dict().get('average_rating') is not None]
