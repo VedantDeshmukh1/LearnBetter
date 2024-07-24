@@ -4,105 +4,206 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ course.course_name }} - Video Player</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .video-player-container {
-            display: flex;
-            flex-direction: row;
-            height: calc(100vh - 60px); /* Adjust based on your header height */
-            background-color: #f9f9f9;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
         }
-        .video-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-        }
+
         .video-container {
-            width: 100%;
-            padding-top: 56.25%; /* 16:9 Aspect Ratio */
             position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-        #video-player {
+        .video-container iframe {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            border: none;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .video-info {
-            margin-top: 20px;
-        }
-        .video-list {
-            width: 350px;
-            overflow-y: auto;
-            padding: 20px;
-            background-color: #fff;
-            border-left: 1px solid #e0e0e0;
+            border-radius: 0.5rem;
         }
         .video-item {
-            cursor: pointer;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            transition: background-color 0.2s;
+            transition: all 0.3s ease;
         }
         .video-item:hover {
-            background-color: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
         .video-item.active {
-            background-color: #e0e0e0;
-            font-weight: bold;
-        }
-        .video-item h3 {
-            margin: 0 0 5px 0;
-            font-size: 16px;
-        }
-        .video-item p {
-            margin: 0;
-            font-size: 14px;
-            color: #666;
+            border-left: 4px solid #3B82F6;
+            background-color: #EFF6FF;
         }
     </style>
 </head>
-<body>
-    <div class="video-player-container">
-        <div class="video-main">
-            <div class="video-container">
-                <iframe id="video-player" src="" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
-            </div>
-            <div class="video-info">
-                <h1 id="video-title"></h1>
-                <p>{{ course.course_name }}</p>
-            </div>
-        </div>
-        <div class="video-list">
-            <h2>Course Videos</h2>
-            {% for video in videos %}
-                <div class="video-item" data-video-id="{{ video.id }}" data-video-url="{{ video.url }}">
-                    <h3>{{ video.title }}</h3>
-                    <p>{{ video.duration }} </p>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <header class="bg-white shadow-md">
+        <nav class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <div class="text-2xl font-bold text-blue-600">Magpie Learning</div>
+                <div class="flex space-x-4 items-center">
+                    <a href="{{ url_for('student.home') }}" class="text-gray-800 hover:text-blue-600">Explore</a>
+                    <a href="{{ url_for('student.my_courses') }}" class="text-gray-800 hover:text-blue-600">My Learning</a>
+                    <a href="{{ url_for('student.dashboard') }}" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center">
+                        {{ session['user']['first_name'][0] }}
+                    </a>
                 </div>
-            {% endfor %}
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 flex-grow">
+        <h1 class="text-3xl font-bold mb-6">{{ course.course_name }}</h1>
+        <div class="flex flex-col lg:flex-row space-y-6 lg:space-y-0 lg:space-x-8">
+            <div class="lg:w-3/4">
+                <div class="video-container mb-6">
+                    <iframe id="video-player" src="" frameborder="0" allowfullscreen sandbox="allow-scripts allow-same-origin" class="rounded-lg shadow-lg"></iframe>
+                </div>
+                <h2 id="current-video-title" class="text-2xl font-semibold mb-4"></h2>
+                <p id="current-video-description" class="text-gray-600 mb-6"></p>
+                <button id="mark-complete-btn" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-300 ease-in-out">
+                    Mark as Complete
+                </button>
+            </div>
+            <div class="lg:w-1/4">
+                <h3 class="text-xl font-semibold mb-4">Course Videos</h3>
+                <div id="video-list" class="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto pr-4">
+                    {% for video in videos %}
+                        <div class="video-item flex items-center justify-between p-4 bg-white rounded-lg shadow-sm cursor-pointer hover:bg-gray-50" data-video-id="{{ video.id }}" data-video-url="{{ video.url }}">
+                            <div class="flex items-center space-x-3">
+                                <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <i data-lucide="play" class="w-5 h-5 text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-sm">{{ video.title }}</h4>
+                                    <p class="text-xs text-gray-500">{{ video.duration }}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="completion-status text-xs text-gray-500 mr-2">Not completed</span>
+                                <i data-lucide="check-circle" class="w-5 h-5 text-gray-300"></i>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="container mx-auto px-6 py-4">
+            <p class="text-center">&copy; 2024 Magpie Learning. All rights reserved.</p>
+        </div>
+    </footer>
 
     <script>
-        const videoItems = document.querySelectorAll('.video-item');
-        const videoPlayer = document.getElementById('video-player');
-        const videoTitle = document.getElementById('video-title');
-        let currentVideoId = '';
-        let courseId = '{{ course.id }}';
+        // Initialize Lucide icons
+        lucide.createIcons();
 
-        function updateVideoSrc(videoId, videoUrl, timestamp = 0) {
-            videoPlayer.src = `${videoUrl}#t=${Math.floor(timestamp)}`;
+        const videoPlayer = document.getElementById('video-player');
+        const videoList = document.getElementById('video-list');
+        const currentVideoTitle = document.getElementById('current-video-title');
+        const currentVideoDescription = document.getElementById('current-video-description');
+        const markCompleteBtn = document.getElementById('mark-complete-btn');
+        let currentVideoId = '';
+        const courseId = '{{ course.id }}';
+        let completedVideos = new Set();
+
+        function updateVideoSrc(videoId, videoUrl) {
+            if (currentVideoId && !completedVideos.has(currentVideoId)) {
+                if (confirm('Have you completed the current video?')) {
+                    markVideoAsComplete(currentVideoId);
+                }
+            }
+            const videoIdFromUrl = videoUrl.split('/')[5];
+            videoPlayer.src = `https://drive.google.com/file/d/${videoIdFromUrl}/preview`;
             currentVideoId = videoId;
+            updateVideoInfo(videoId);
+            saveVideoProgress(videoId, 0);
+            updateActiveVideo(videoId);
         }
 
+        function updateVideoInfo(videoId) {
+            const videoItem = document.querySelector(`.video-item[data-video-id="${videoId}"]`);
+            currentVideoTitle.textContent = videoItem.querySelector('h4').textContent;
+            currentVideoDescription.textContent = videoItem.querySelector('p').textContent;
+            updateMarkCompleteButton(videoId);
+        }
+
+        function updateMarkCompleteButton(videoId) {
+            if (completedVideos.has(videoId)) {
+                markCompleteBtn.textContent = 'Completed';
+                markCompleteBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                markCompleteBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                markCompleteBtn.disabled = true;
+            } else {
+                markCompleteBtn.textContent = 'Mark as Complete';
+                markCompleteBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                markCompleteBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+                markCompleteBtn.disabled = false;
+            }
+        }
+
+        function updateActiveVideo(videoId) {
+            document.querySelectorAll('.video-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            const activeVideo = document.querySelector(`.video-item[data-video-id="${videoId}"]`);
+            activeVideo.classList.add('active');
+        }
+
+        function markVideoAsComplete(videoId) {
+            completedVideos.add(videoId);
+            const videoItem = document.querySelector(`.video-item[data-video-id="${videoId}"]`);
+            const completionStatus = videoItem.querySelector('.completion-status');
+            const checkIcon = videoItem.querySelector('[data-lucide="check-circle"]');
+            completionStatus.textContent = 'Completed';
+            completionStatus.classList.remove('text-gray-500');
+            completionStatus.classList.add('text-green-500');
+            checkIcon.classList.remove('text-gray-300');
+            checkIcon.classList.add('text-green-500');
+            updateProgress();
+            updateMarkCompleteButton(videoId);
+        }
+
+        function updateProgress() {
+            const totalVideos = {{ videos|length }};
+            const progress = (completedVideos.size / totalVideos) * 100;
+            
+            fetch(`{{ url_for("student.update_progress", course_id=course.id, video_id="") }}${currentVideoId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    progress: progress
+                })
+            })
+            .then(response => response.json())
+            .then(data => console.log('Progress updated:', data))
+            .catch(error => console.error('Error updating progress:', error));
+        }
+
+        // Update the initial loading of completed videos
+        document.addEventListener('DOMContentLoaded', () => {
+            const progressData = {{ progress_data|tojson }};
+            const videosCompleted = progressData.videos_completed || {};
+            for (const videoId in videosCompleted) {
+                if (videosCompleted[videoId]) {
+                    markVideoAsComplete(videoId);
+                }
+            }
+        });
+
         function saveVideoProgress(videoId, currentTime) {
-            fetch('/student/save_video_progress', {
+            fetch('{{ url_for("student.save_video_progress") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -111,30 +212,26 @@
                     video_id: videoId,
                     current_time: currentTime,
                     course_id: courseId
-                }),
+                })
             })
             .then(response => response.json())
             .then(data => console.log('Progress saved:', data))
-            .catch((error) => console.error('Error:', error));
+            .catch(error => console.error('Error saving progress:', error));
         }
 
-        videoItems.forEach(item => {
-            item.addEventListener('click', () => {
-                const videoId = item.getAttribute('data-video-id');
-                const videoUrl = item.getAttribute('data-video-url');
-                const videoTitleText = item.querySelector('h3').textContent;
+        videoList.addEventListener('click', (event) => {
+            const videoItem = event.target.closest('.video-item');
+            if (videoItem) {
+                const videoId = videoItem.getAttribute('data-video-id');
+                const videoUrl = videoItem.getAttribute('data-video-url');
+                updateVideoSrc(videoId, videoUrl);
+            }
+        });
 
-                videoTitle.textContent = videoTitleText;
-
-                videoItems.forEach(v => v.classList.remove('active'));
-                item.classList.add('active');
-
-                fetch(`/student/get_video_progress/${videoId}?course_id=${courseId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        updateVideoSrc(videoId, videoUrl, data.timestamp);
-                    });
-            });
+        markCompleteBtn.addEventListener('click', () => {
+            if (currentVideoId) {
+                markVideoAsComplete(currentVideoId);
+            }
         });
 
         videoPlayer.addEventListener('timeupdate', () => {
@@ -144,9 +241,22 @@
         });
 
         // Load initial video
-        if (videoItems.length > 0) {
-            videoItems[0].click();
+        if (videoList.children.length > 0) {
+            const firstVideo = videoList.children[0];
+            const videoId = firstVideo.getAttribute('data-video-id');
+            const videoUrl = firstVideo.getAttribute('data-video-url');
+            updateVideoSrc(videoId, videoUrl);
         }
+
+        // Load saved progress
+        fetch('{{ url_for("student.get_video_progress", video_id="") }}' + currentVideoId + '?course_id=' + courseId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.timestamp > 0) {
+                    videoPlayer.currentTime = data.timestamp;
+                }
+            })
+            .catch(error => console.error('Error loading progress:', error));
     </script>
 </body>
 </html>

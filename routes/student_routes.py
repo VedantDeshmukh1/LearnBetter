@@ -40,8 +40,29 @@ def home():
         student_ref = db.collection('student_details').document(user_id)
         student_doc = student_ref.get()
         if student_doc.exists:
-            purchased_course_ids = student_doc.to_dict().get('purchased_courses', [])
-            user_courses = [course for course in courses if course['id'] in purchased_course_ids]
+            student_data = student_doc.to_dict()
+            purchased_course_ids = student_data.get('purchased_courses', [])
+            progress = student_data.get('progress', {})
+            
+            for course_id in purchased_course_ids:
+                course_doc = db.collection('course_details').document(course_id).get()
+                if course_doc.exists:
+                    course = course_doc.to_dict()
+                    course['id'] = course_doc.id
+                    
+                    # Check if new videos have been added
+                    total_videos = len(course['videos'])
+                    completed_videos = len(progress.get(course_id, {}).get('videos_completed', {}))
+                    
+                    if completed_videos > total_videos:
+                        # Update progress if new videos have been added
+                        new_progress = (completed_videos / total_videos) * 100
+                        progress[course_id]['overall_progress'] = new_progress
+                        student_ref.update({'progress': progress})
+                    
+                    course['progress'] = progress.get(course_id, {}).get('overall_progress', 0)
+                    user_courses.append(course)
+            
             courses = [course for course in courses if course['id'] not in purchased_course_ids]
     
     return render_template('student/home.html', courses=courses, user_courses=user_courses, show_more_button=show_more_button)
@@ -310,7 +331,13 @@ def video_player(course_id):
         video_data['id'] = video_id
         videos.append(video_data)
 
-    return render_template('student/video_player.html', course=course, videos=videos)
+    # Sort videos by sequence
+    videos.sort(key=lambda x: x['video_seq'])
+
+    # Get progress data
+    progress_data = student.get('progress', {}).get(course_id, {})
+
+    return render_template('student/video_player.html', course=course, videos=videos, progress_data=progress_data)
 
 @bp.route('/my_reviews')
 def my_reviews():
@@ -428,32 +455,85 @@ def purchase_course(course_id):
     flash('Course purchased successfully!', 'success')
     return redirect(url_for('student.my_courses'))
 
-@bp.route('/update_progress/<course_id>/<lesson_id>', methods=['POST'])
-def update_progress(course_id, lesson_id):
+@bp.route('/update_progress/<course_id>/<video_id>', methods=['POST'])
+def update_progress(course_id, video_id):
     if 'user' not in session:
         return jsonify({'error': 'User not logged in'}), 401
 
     user_id = session['user_id']
+    data = request.json
+    progress = data['progress']
     
-    progress_ref = db.collection('student_progress').where('user_id', '==', user_id).where('course_id', '==', course_id).limit(1)
-    progress_docs = progress_ref.get()
+    student_ref = db.collection('student_details').document(user_id)
+    student_doc = student_ref.get()
     
-    if not progress_docs:
-        return jsonify({'error': 'Progress data not found'}), 404
+    if not student_doc.exists:
+        return jsonify({'error': 'Student data not found'}), 404
     
-    progress_doc = progress_docs[0]
-    progress_data = progress_doc.to_dict()
+    student_data = student_doc.to_dict()
     
-    if lesson_id not in progress_data['lessons_completed']:
-        return jsonify({'error': 'Lesson not found'}), 404
+    if 'progress' not in student_data:
+        student_data['progress'] = {}
+    if course_id not in student_data['progress']:
+        student_data['progress'][course_id] = {'overall_progress': 0, 'videos_completed': {}}
     
-    progress_data['lessons_completed'][lesson_id] = True
-    progress_data['overall_progress'] = sum(1 for completed in progress_data['lessons_completed'].values() if completed) / len(progress_data['lessons_completed']) * 100
-    progress_data['last_accessed'] = firestore.SERVER_TIMESTAMP
+    student_data['progress'][course_id]['videos_completed'][video_id] = True
+    student_data['progress'][course_id]['overall_progress'] = progress
+    student_data['last_accessed'] = firestore.SERVER_TIMESTAMP
     
-    db.collection('student_progress').document(progress_doc.id).update(progress_data)
+    student_ref.update(student_data)
     
     return jsonify({'success': True})
+
+@bp.route('/save_video_progress', methods=['POST'])
+def save_video_progress():
+    if 'user' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    user_id = session['user_id']
+    data = request.json
+    video_id = data['video_id']
+    current_time = data['current_time']
+    course_id = data['course_id']
+
+    student_ref = db.collection('student_details').document(user_id)
+    student_doc = student_ref.get()
+
+    if not student_doc.exists:
+        return jsonify({'error': 'Student data not found'}), 404
+
+    student_data = student_doc.to_dict()
+
+    if 'progress' not in student_data:
+        student_data['progress'] = {}
+    if course_id not in student_data['progress']:
+        student_data['progress'][course_id] = {'overall_progress': 0, 'videos_completed': {}, 'video_progress': {}}
+    if 'video_progress' not in student_data['progress'][course_id]:
+        student_data['progress'][course_id]['video_progress'] = {}
+
+    student_data['progress'][course_id]['video_progress'][video_id] = current_time
+    student_ref.update(student_data)
+
+    return jsonify({'success': True})
+
+@bp.route('/get_video_progress/<video_id>')
+def get_video_progress(video_id):
+    if 'user' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    user_id = session['user_id']
+    course_id = request.args.get('course_id')
+
+    student_ref = db.collection('student_details').document(user_id)
+    student_doc = student_ref.get()
+
+    if not student_doc.exists:
+        return jsonify({'timestamp': 0})
+
+    student_data = student_doc.to_dict()
+
+    timestamp = student_data.get('progress', {}).get(course_id, {}).get('video_progress', {}).get(video_id, 0)
+    return jsonify({'timestamp': timestamp})
 
 @bp.route('/rate_course/<course_id>', methods=['GET', 'POST'])
 def rate_course(course_id):
@@ -546,34 +626,6 @@ def dashboard():
                            chart_data=chart_data, 
                            recent_activities=recent_activities)
 
-@bp.route('/save_video_progress', methods=['POST'])
-def save_video_progress():
-    if 'user' not in session:
-        return jsonify({'error': 'User not logged in'}), 401
-
-    user_id = session['user_id']
-    data = request.json
-    video_id = data['video_id']
-    current_time = data['current_time']
-    course_id = data['course_id']
-
-    progress_ref = db.collection('student_progress').where('user_id', '==', user_id).where('course_id', '==', course_id).limit(1)
-    progress_docs = progress_ref.get()
-
-    if not progress_docs:
-        return jsonify({'error': 'Progress data not found'}), 404
-
-    progress_doc = progress_docs[0]
-    progress_data = progress_doc.to_dict()
-
-    if 'video_progress' not in progress_data:
-        progress_data['video_progress'] = {}
-
-    progress_data['video_progress'][video_id] = current_time
-    progress_doc.reference.update(progress_data)
-
-    return jsonify({'success': True})
-
 @bp.route('/student/update_video_progress/<video_id>', methods=['GET'])
 def update_video_progress(video_id):
     if 'user' not in session:
@@ -594,23 +646,3 @@ def update_video_progress(video_id):
         return jsonify({'timestamp': timestamp}), 200
     else:
         return jsonify({'timestamp': 0}), 200
-
-@bp.route('/get_video_progress/<video_id>')
-def get_video_progress(video_id):
-    if 'user' not in session:
-        return jsonify({'error': 'User not logged in'}), 401
-
-    user_id = session['user_id']
-    course_id = request.args.get('course_id')
-
-    progress_ref = db.collection('student_progress').where('user_id', '==', user_id).where('course_id', '==', course_id).limit(1)
-    progress_docs = progress_ref.get()
-
-    if not progress_docs:
-        return jsonify({'timestamp': 0})
-
-    progress_doc = progress_docs[0]
-    progress_data = progress_doc.to_dict()
-
-    timestamp = progress_data.get('video_progress', {}).get(video_id, 0)
-    return jsonify({'timestamp': timestamp})
