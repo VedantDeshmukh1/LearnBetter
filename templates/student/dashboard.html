@@ -146,7 +146,7 @@
                                 <div class="w-full bg-gray-200 rounded-full h-2.5">
                                     <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ course.progress }}%"></div>
                                 </div>
-                                <span class="text-sm text-gray-600">{{ course.progress }}%</span>
+                                <span class="text-sm text-gray-600">{{ "%.2f"|format(course.progress) }}%</span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <a href="{{ url_for('student.course_details', course_id=course.id) }}" class="text-blue-600 hover:underline">View</a>

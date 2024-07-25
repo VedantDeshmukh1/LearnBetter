@@ -374,13 +374,9 @@ def video_player(course_id, vid_seq=None):
     if vid_seq is not None:
         current_video = next((v for v in videos if v['video_seq'] == vid_seq), None)
     else:
-        # Find the video next to the last completed video or the first video if none completed
+        # Find the last completed video or the first video if none completed
         completed_videos = [v for v in videos if v['completed']]
-        if completed_videos:
-            last_completed_index = videos.index(completed_videos[-1])
-            current_video = videos[last_completed_index + 1] if last_completed_index + 1 < len(videos) else videos[0]
-        else:
-            current_video = videos[0]
+        current_video = completed_videos[-1] if completed_videos else videos[0]
 
     return render_template('student/video_player.html', course=course, videos=videos, progress_data=progress_data, overall_progress=overall_progress, current_video=current_video)
 
@@ -536,9 +532,39 @@ def update_progress(course_id, video_id):
             f'progress.{course_id}': course_progress
         })
 
-        return jsonify({'success': True, 'progress': progress})
+        # Update overall progress
+        new_overall_progress = update_student_course_progress(user_id, course_id)
+
+        return jsonify({'success': True, 'progress': new_overall_progress})
     else:
         return jsonify({'success': False, 'error': 'Student not found'}), 404
+
+def update_student_course_progress(student_id, course_id):
+    student_ref = db.collection('student_details').document(student_id)
+    student_doc = student_ref.get()
+    
+    if student_doc.exists:
+        student_data = student_doc.to_dict()
+        course_progress = student_data.get('progress', {}).get(course_id, {})
+        
+        course_ref = db.collection('course_details').document(course_id)
+        course = course_ref.get().to_dict()
+        total_videos = len(course.get('videos', {}))
+        
+        completed_videos = len([v for v in course_progress.get('videos_completed', {}).values() if v.get('completed', False)])
+        
+        # Calculate new overall progress
+        new_overall_progress = (completed_videos / total_videos) * 100 if total_videos > 0 else 0
+        
+        # Update student's progress
+        student_ref.update({
+            f'progress.{course_id}.overall_progress': new_overall_progress,
+            f'progress.{course_id}.total_videos': total_videos
+        })
+
+        return new_overall_progress
+    
+    return None
 
 @bp.route('/save_video_progress', methods=['POST'])
 @student_required

@@ -491,10 +491,38 @@ def add_video(course_id):
             f'videos.{video_id}': video_data
         })
         
+        # After adding the video, update enrolled students' progress
+        update_enrolled_students_progress(course_id)
+
         flash('Video added successfully', 'success')
         return redirect(url_for('teacher.edit_course', course_id=course_id))
     
     return render_template('teacher/add_video.html', course_id=course_id)
+
+def update_enrolled_students_progress(course_id):
+    course_ref = db.collection('course_details').document(course_id)
+    course = course_ref.get().to_dict()
+    total_videos = len(course.get('videos', {}))
+
+    # Get all enrolled students
+    enrolled_students = course.get('enrollments', {}).keys()
+
+    for student_id in enrolled_students:
+        student_ref = db.collection('student_details').document(student_id)
+        student_doc = student_ref.get()
+        if student_doc.exists:
+            student_data = student_doc.to_dict()
+            course_progress = student_data.get('progress', {}).get(course_id, {})
+            completed_videos = len([v for v in course_progress.get('videos_completed', {}).values() if v.get('completed', False)])
+            
+            # Calculate new overall progress
+            new_overall_progress = (completed_videos / total_videos) * 100
+
+            # Update student's progress
+            student_ref.update({
+                f'progress.{course_id}.overall_progress': new_overall_progress,
+                f'progress.{course_id}.total_videos': total_videos
+            })
 
 @bp.route('/edit_video/<course_id>/<video_id>', methods=['GET', 'POST'])
 @teacher_required
