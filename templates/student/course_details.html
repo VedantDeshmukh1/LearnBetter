@@ -213,7 +213,7 @@
                             <p class="text-sm text-gray-600 mb-4 line-clamp-3 flex-grow">{{ video.description }}</p>
                             <div class="mt-auto">
                                 {% if 'user' in session and course.id in student_details.purchased_courses %}
-                                    <a href="{{ url_for('student.video_player', course_id=course.id) }}?video_id={{ video.id }}" class="block bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700 text-center">Watch Video</a>
+                                    <a href="{{ url_for('student.video_player', course_id=course.id, vid_seq=video.video_seq) }}" class="block bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700 text-center">Watch Video</a>
                                 {% else %}
                                     <button onclick="showPurchaseInfo()" class="w-full bg-gray-300 text-gray-700 px-3 py-1 rounded-md text-sm cursor-pointer text-center">Watch Video</button>
                                 {% endif %}

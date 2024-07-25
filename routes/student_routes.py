@@ -331,8 +331,9 @@ def search_courses():
     return jsonify(courses)
 
 @bp.route('/video_player/<course_id>')
+@bp.route('/video_player/<course_id>/<int:vid_seq>')
 @student_required
-def video_player(course_id):
+def video_player(course_id, vid_seq=None):
     user_id = session['user_id']
     student_ref = db.collection('student_details').document(user_id)
     student = student_ref.get().to_dict()
@@ -368,7 +369,19 @@ def video_player(course_id):
 
     overall_progress = progress_data.get('overall_progress', 0)
 
-    return render_template('student/video_player.html', course=course, videos=videos, progress_data=progress_data, overall_progress=overall_progress)
+    # Determine which video to play
+    if vid_seq is not None:
+        current_video = next((v for v in videos if v['video_seq'] == vid_seq), None)
+    else:
+        # Find the video next to the last completed video or the first video if none completed
+        completed_videos = [v for v in videos if v['completed']]
+        if completed_videos:
+            last_completed_index = videos.index(completed_videos[-1])
+            current_video = videos[last_completed_index + 1] if last_completed_index + 1 < len(videos) else videos[0]
+        else:
+            current_video = videos[0]
+
+    return render_template('student/video_player.html', course=course, videos=videos, progress_data=progress_data, overall_progress=overall_progress, current_video=current_video)
 
 @bp.route('/my_reviews')
 @student_required
@@ -506,39 +519,25 @@ def purchase_course(course_id):
 def update_progress(course_id, video_id):
     user_id = session['user_id']
     data = request.json
-    progress = data['progress']
-    timestamp = data['timestamp']
-    
+    progress = data.get('progress', 0)
+
     student_ref = db.collection('student_details').document(user_id)
     student_doc = student_ref.get()
     
-    if not student_doc.exists:
-        return jsonify({'error': 'Student data not found'}), 404
-    
-    student_data = student_doc.to_dict()
-    
-    if 'progress' not in student_data:
-        student_data['progress'] = {}
-    if course_id not in student_data['progress']:
-        student_data['progress'][course_id] = {'overall_progress': 0, 'videos_completed': {}}
-    
-    # Update the completed status of the video with timestamp
-    student_data['progress'][course_id]['videos_completed'][video_id] = {
-        'completed': True,
-        'completion_date': timestamp
-    }
-    
-    # Update overall progress
-    student_data['progress'][course_id]['overall_progress'] = round(progress, 2)
-    
-    student_ref.update(student_data)
-    
-    if progress == 100:
-        course_doc = db.collection('course_details').document(course_id).get()
-        course_name = course_doc.to_dict()['course_name']
-        add_student_activity(user_id, 'completion', f"Completed course: {course_name}")
-    
-    return jsonify({'success': True, 'progress': student_data['progress'][course_id]['overall_progress']})
+    if student_doc.exists:
+        student_data = student_doc.to_dict()
+        course_progress = student_data.get('progress', {}).get(course_id, {})
+        course_progress['overall_progress'] = progress
+        course_progress['videos_completed'] = course_progress.get('videos_completed', {})
+        course_progress['videos_completed'][video_id] = {'completed': True, 'completion_date': firestore.SERVER_TIMESTAMP}
+
+        student_ref.update({
+            f'progress.{course_id}': course_progress
+        })
+
+        return jsonify({'success': True, 'progress': progress})
+    else:
+        return jsonify({'success': False, 'error': 'Student not found'}), 404
 
 @bp.route('/save_video_progress', methods=['POST'])
 @student_required

@@ -88,10 +88,15 @@
         <div class="flex flex-col lg:flex-row space-y-6 lg:space-y-0 lg:space-x-8">
             <div class="lg:w-3/4">
                 <div class="video-container mb-6">
-                    <iframe id="video-player" src="" frameborder="0" allowfullscreen sandbox="allow-scripts allow-same-origin" class="rounded-lg shadow-lg"></iframe>
+                    <iframe id="video-player" src="https://drive.google.com/file/d/{{ current_video.url.split('/')[-2] }}/preview" frameborder="0" allowfullscreen sandbox="allow-scripts allow-same-origin" class="rounded-lg shadow-lg"></iframe>
+                </div>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="current-video-title" class="text-2xl font-semibold"></h2>
+                    <button id="mark-complete-btn" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-300 ease-in-out">
+                        Mark as Complete
+                    </button>
                 </div>
                 <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                    <h2 id="current-video-title" class="text-2xl font-semibold mb-2"></h2>
                     <div class="flex items-center text-sm text-gray-500 mb-4">
                         <span id="current-video-duration" class="mr-4"></span>
                         <span id="current-video-date"></span>
@@ -101,15 +106,12 @@
                         <p id="current-video-description" class="text-gray-600 whitespace-pre-line"></p>
                     </div>
                 </div>
-                <button id="mark-complete-btn" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-300 ease-in-out">
-                    Mark as Complete
-                </button>
             </div>
             <div class="lg:w-1/4">
                 <h3 class="text-xl font-semibold mb-4">Course Videos</h3>
                 <div id="video-list" class="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto pr-4">
                     {% for video in videos %}
-                        <div class="video-item flex items-center justify-between p-4 bg-white rounded-lg shadow-sm cursor-pointer hover:bg-gray-50" 
+                        <div class="video-item flex items-center justify-between p-4 bg-white rounded-lg shadow-sm cursor-pointer hover:bg-gray-50 {% if video.id == current_video.id %}bg-blue-100{% endif %}" 
                              data-video-id="{{ video.id }}" 
                              data-video-url="{{ video.url }}" 
                              data-video-title="{{ video.title }}" 
@@ -137,6 +139,19 @@
         </div>
     </main>
 
+    <!-- Add this modal at the end of the body, before the closing </body> tag -->
+    <div id="completion-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-xl">
+            <h3 class="text-xl font-bold mb-4">Video not marked as complete</h3>
+            <p class="mb-6">What would you like to do?</p>
+            <div class="flex justify-end space-x-4">
+                <button id="stay-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">Stay on this video</button>
+                <button id="mark-complete-switch-btn" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Mark as complete & switch</button>
+                <button id="switch-btn" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Switch without marking</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const videoPlayer = document.getElementById('video-player');
         const videoList = document.getElementById('video-list');
@@ -154,17 +169,10 @@
                     completedVideos.add(videoId);
                 }
             });
+            updateProgress();  // Add this line to update progress on initialization
         }
 
         function updateVideoSrc(videoId, videoUrl) {
-            if (currentVideoId && !completedVideos.has(currentVideoId)) {
-                showCompletionPopup(currentVideoId, videoId, videoUrl);
-            } else {
-                changeVideo(videoId, videoUrl);
-            }
-        }
-
-        function changeVideo(videoId, videoUrl) {
             const videoIdFromUrl = videoUrl.split('/')[5];
             videoPlayer.src = `https://drive.google.com/file/d/${videoIdFromUrl}/preview`;
             currentVideoId = videoId;
@@ -172,6 +180,8 @@
             saveVideoProgress(videoId, 0);
             updateActiveVideo(videoId);
             updateMarkCompleteButton(completedVideos.has(videoId));
+            // Reset video player to the beginning
+            videoPlayer.currentTime = 0;
         }
 
         function updateCompletionStatus(videoId) {
@@ -208,6 +218,7 @@
                     if (data.success) {
                         console.log('Progress updated:', data.progress);
                         updateProgressDisplay(data.progress);
+                        moveToNextVideo();  // Add this line to move to the next video
                     }
                 })
                 .catch(error => console.error('Error updating progress:', error));
@@ -258,24 +269,7 @@
 
         function updateProgress() {
             const newProgress = calculateOverallProgress();
-            
-            fetch(`{{ url_for("student.update_progress", course_id=course.id, video_id="") }}${currentVideoId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    progress: newProgress
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('Progress updated:', data.progress);
-                    updateProgressDisplay(data.progress);
-                }
-            })
-            .catch(error => console.error('Error updating progress:', error));
+            updateProgressDisplay(newProgress);
         }
 
         function updateProgressDisplay(progress) {
@@ -302,12 +296,50 @@
             }
         }
 
+        let switchingToVideoId = null;
+        let switchingToVideoUrl = null;
+
+        function showCompletionModal() {
+            document.getElementById('completion-modal').classList.remove('hidden');
+            document.getElementById('completion-modal').classList.add('flex');
+        }
+
+        function hideCompletionModal() {
+            document.getElementById('completion-modal').classList.add('hidden');
+            document.getElementById('completion-modal').classList.remove('flex');
+        }
+
         videoList.addEventListener('click', (event) => {
             const videoItem = event.target.closest('.video-item');
             if (videoItem) {
                 const videoId = videoItem.getAttribute('data-video-id');
                 const videoUrl = videoItem.getAttribute('data-video-url');
-                updateVideoSrc(videoId, videoUrl);
+                
+                if (currentVideoId && !completedVideos.has(currentVideoId)) {
+                    switchingToVideoId = videoId;
+                    switchingToVideoUrl = videoUrl;
+                    showCompletionModal();
+                } else {
+                    updateVideoSrc(videoId, videoUrl);
+                }
+            }
+        });
+
+        document.getElementById('stay-btn').addEventListener('click', () => {
+            hideCompletionModal();
+        });
+
+        document.getElementById('mark-complete-switch-btn').addEventListener('click', () => {
+            hideCompletionModal();
+            if (currentVideoId) {
+                markVideoAsComplete(currentVideoId);
+            }
+        });
+
+        document.getElementById('switch-btn').addEventListener('click', () => {
+            hideCompletionModal();
+            if (switchingToVideoId && switchingToVideoUrl) {
+                updateVideoSrc(switchingToVideoId, switchingToVideoUrl);
             }
         });
 
@@ -323,12 +355,13 @@
             }
         });
 
+        // Initialize with the current video
         window.addEventListener('DOMContentLoaded', (event) => {
             initializeCompletedVideos();
-            const firstVideo = document.querySelector('.video-item');
-            if (firstVideo) {
-                const videoId = firstVideo.getAttribute('data-video-id');
-                const videoUrl = firstVideo.getAttribute('data-video-url');
+            const currentVideo = document.querySelector('.video-item.bg-blue-100');
+            if (currentVideo) {
+                const videoId = currentVideo.getAttribute('data-video-id');
+                const videoUrl = currentVideo.getAttribute('data-video-url');
                 updateVideoSrc(videoId, videoUrl);
                 updateMarkCompleteButton(completedVideos.has(videoId));
             }
@@ -349,6 +382,21 @@
 
         // Initialize Lucide icons
         lucide.createIcons();
+
+        function moveToNextVideo() {
+            const videoItems = Array.from(document.querySelectorAll('.video-item'));
+            const currentIndex = videoItems.findIndex(item => item.getAttribute('data-video-id') === currentVideoId);
+            
+            if (currentIndex < videoItems.length - 1) {
+                const nextVideo = videoItems[currentIndex + 1];
+                const nextVideoId = nextVideo.getAttribute('data-video-id');
+                const nextVideoUrl = nextVideo.getAttribute('data-video-url');
+                updateVideoSrc(nextVideoId, nextVideoUrl);
+            } else {
+                console.log('This is the last video in the course.');
+                // Optionally, you can show a message to the user or redirect them to a course completion page
+            }
+        }
     </script>
 </body>
 </html>
