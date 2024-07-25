@@ -4,6 +4,7 @@ from config import db, rdb, auth
 from utils import validate_email, update_course_ratings, generate_username, generate_password, send_email
 import re
 import requests
+from datetime import datetime, timedelta
 
 bp = Blueprint('student', __name__)
 
@@ -327,20 +328,23 @@ def video_player(course_id):
     course['id'] = course_id
 
     videos = []
+    progress_data = student.get('progress', {}).get(course_id, {})
+    videos_completed = progress_data.get('videos_completed', {})
+    
     for video_id, video_data in course['videos'].items():
         video_data['id'] = video_id
         video_data['description'] = video_data.get('description', 'No description available.')
         video_data['duration'] = video_data.get('duration', 'Duration not available')
         video_data['date'] = video_data.get('date', 'Date not available')
+        video_data['completed'] = videos_completed.get(video_id, False)
         videos.append(video_data)
 
     # Sort videos by sequence
     videos.sort(key=lambda x: x['video_seq'])
 
-    # Get progress data
-    progress_data = student.get('progress', {}).get(course_id, {})
+    overall_progress = progress_data.get('overall_progress', 0)
 
-    return render_template('student/video_player.html', course=course, videos=videos, progress_data=progress_data)
+    return render_template('student/video_player.html', course=course, videos=videos, progress_data=progress_data, overall_progress=overall_progress)
 
 @bp.route('/my_reviews')
 def my_reviews():
@@ -437,7 +441,7 @@ def purchase_course(course_id):
     for lesson_id in course.get('lessons', {}):
         progress_data['lessons_completed'][lesson_id] = False
     
-    db.collection('student_progress').add(progress_data)
+    #db.collection('student_progress').add(progress_data)
 
     # Update user document in Firestore
     user_ref = db.collection('users').document(user_id)
@@ -563,6 +567,27 @@ def rate_course(course_id):
     
     return render_template('student/rate_course.html', course_id=course_id)
 
+# Add this function outside of any route
+def calculate_average_rating(user_id):
+    # Fetch all courses rated by the user
+    courses = db.collection('course_details').where(f'ratings.{user_id}', '!=', None).get()
+    total_rating = sum(course.to_dict()['ratings'][user_id]['rating'] for course in courses)
+    return total_rating / len(courses) if courses else 0
+
+def calculate_average_rating(user_id):
+    # Fetch all courses
+    courses = db.collection('course_details').stream()
+    total_rating = 0
+    rated_courses = 0
+    
+    for course in courses:
+        course_data = course.to_dict()
+        if 'ratings' in course_data and user_id in course_data['ratings']:
+            total_rating += course_data['ratings'][user_id]['rating']
+            rated_courses += 1
+    
+    return total_rating / rated_courses if rated_courses > 0 else 0
+
 @bp.route('/dashboard')
 def dashboard():
     if 'user' not in session:
@@ -571,48 +596,75 @@ def dashboard():
     user_id = session['user_id']
     user = session['user']
 
-    # Fetch student details and course data
-    student_ref = db.collection('student_details').document(user_id)
-    student_doc = student_ref.get()
-    student_data = student_doc.to_dict()
+    try:
+        # Fetch student details and course data
+        student_ref = db.collection('student_details').document(user_id)
+        student_doc = student_ref.get()
+        if not student_doc.exists:
+            flash('Student data not found', 'error')
+            return redirect(url_for('student.home'))
+        
+        student_data = student_doc.to_dict()
 
-    # Prepare analytics data
-    analytics = {
-        'total_courses': len(student_data.get('purchased_courses', [])),
-        'completed_courses': sum(1 for course in student_data.get('progress', {}).values() if course.get('overall_progress', 0) == 100),
-        'total_learning_hours': sum(course.get('total_time_spent', 0) for course in student_data.get('progress', {}).values()),
-        'average_rating': 0  # You'll need to calculate this based on the student's ratings
-    }
+        # Update the analytics data in the dashboard route
+        analytics = {
+            'total_courses': len(student_data.get('purchased_courses', [])),
+            'completed_courses': 0,
+            'total_learning_hours': 0,
+            'average_rating': calculate_average_rating(user_id)
+        }
 
-    # Fetch course details
-    courses = []
-    for course_id in student_data.get('purchased_courses', []):
-        course_doc = db.collection('course_details').document(course_id).get()
-        if course_doc.exists:
-            course = course_doc.to_dict()
-            course['id'] = course_doc.id
-            course['progress'] = student_data.get('progress', {}).get(course_id, {}).get('overall_progress', 0)
-            courses.append(course)
+        progress_data = student_data.get('progress', {})
+        if isinstance(progress_data, dict):
+            analytics['completed_courses'] = sum(1 for course in progress_data.values() if isinstance(course, dict) and course.get('overall_progress', 0) == 100)
+            analytics['total_learning_hours'] = sum(
+                sum(video.get('duration', 0) for video in course.get('videos', {}).values() if isinstance(video, dict) and video.get('completed', False))
+                for course in progress_data.values() if isinstance(course, dict)
+            ) / 3600  # Convert seconds to hours
 
-    # Prepare chart data (example data, you should replace this with actual data)
-    chart_data = {
-        'labels': ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-        'data': [5, 10, 8, 12]
-    }
+        # Prepare chart data based on video completion
+        chart_data = {
+            'labels': [],
+            'data': []
+        }
+        for i in range(7):  # Last 7 days
+            date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
+            chart_data['labels'].append(date)
+            if isinstance(progress_data, dict):
+                chart_data['data'].append(sum(
+                    1 for course in progress_data.values() if isinstance(course, dict)
+                    for video in course.get('videos_completed', {}).values() if isinstance(video, dict)
+                    and video.get('completion_date', '').startswith(date)
+                ))
+            else:
+                chart_data['data'].append(0)
+        chart_data['labels'].reverse()
+        chart_data['data'].reverse()
 
-    # Prepare recent activities (example data, you should replace this with actual data)
-    recent_activities = [
-        {'icon': 'book-open', 'description': 'Started a new course', 'timestamp': '2 hours ago'},
-        {'icon': 'check-circle', 'description': 'Completed a lesson', 'timestamp': '1 day ago'},
-        {'icon': 'star', 'description': 'Received a certificate', 'timestamp': '3 days ago'}
-    ]
+        # Fetch recent activities from the student_details collection
+        recent_activities = student_data.get('recent_activities', [])[:5]  # Get the last 5 activities
 
-    return render_template('student/dashboard.html', 
-                           user=user, 
-                           analytics=analytics, 
-                           courses=courses, 
-                           chart_data=chart_data, 
-                           recent_activities=recent_activities)
+        # Fetch course details
+        courses = []
+        for course_id in student_data.get('purchased_courses', []):
+            course_doc = db.collection('course_details').document(course_id).get()
+            if course_doc.exists:
+                course = course_doc.to_dict()
+                course['id'] = course_doc.id
+                course['progress'] = progress_data.get(course_id, {}).get('overall_progress', 0) if isinstance(progress_data, dict) else 0
+                courses.append(course)
+
+        return render_template('student/dashboard.html', 
+                               user=user, 
+                               analytics=analytics, 
+                               courses=courses, 
+                               chart_data=chart_data, 
+                               recent_activities=recent_activities)
+    
+    except Exception as e:
+        print(f"Error in dashboard route: {str(e)}")
+        flash('An error occurred while loading the dashboard', 'error')
+        return redirect(url_for('student.home'))
 
 @bp.route('/student/update_video_progress/<video_id>', methods=['GET'])
 def update_video_progress(video_id):

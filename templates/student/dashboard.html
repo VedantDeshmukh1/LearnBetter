@@ -96,7 +96,7 @@
             </div>
             <div class="dashboard-card">
                 <h3 class="text-lg font-semibold mb-2">Total Learning Hours</h3>
-                <p class="text-3xl font-bold">{{ analytics.total_learning_hours }}</p>
+                <p class="text-3xl font-bold">{{ analytics.total_learning_hours|round(1) }}</p>
             </div>
             <div class="dashboard-card">
                 <h3 class="text-lg font-semibold mb-2">Average Course Rating</h3>
@@ -117,7 +117,7 @@
                         <i data-lucide="{{ activity.icon }}" class="mr-3 text-blue-600"></i>
                         <div>
                             <p class="font-semibold">{{ activity.description }}</p>
-                            <p class="text-sm text-gray-600">{{ activity.timestamp }}</p>
+                            <p class="text-sm text-gray-600">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</p>
                         </div>
                     </li>
                     {% endfor %}
@@ -185,7 +185,7 @@
             data: {
                 labels: {{ chart_data.labels|tojson }},
                 datasets: [{
-                    label: 'Learning Hours',
+                    label: 'Videos Completed',
                     data: {{ chart_data.data|tojson }},
                     borderColor: 'rgb(59, 130, 246)',
                     tension: 0.1
@@ -195,7 +195,10 @@
                 responsive: true,
                 scales: {
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
                     }
                 }
             }

@@ -72,7 +72,11 @@
                     </div>
                     <div class="text-right">
                         <span id="course-progress" class="text-xs font-semibold inline-block text-blue-600">
-                            {{ overall_progress|round(2) }}%
+                            {% if overall_progress is defined %}
+                                {{ overall_progress|round(2) }}%
+                            {% else %}
+                                0%
+                            {% endif %}
                         </span>
                     </div>
                 </div>
@@ -140,44 +144,24 @@
         let currentVideoId = null;
         const completedVideos = new Set();
 
+        // Initialize completed videos
+        function initializeCompletedVideos() {
+            const videoItems = document.querySelectorAll('.video-item');
+            videoItems.forEach(item => {
+                const videoId = item.getAttribute('data-video-id');
+                const completionStatus = item.querySelector('.completion-status');
+                if (completionStatus.textContent.trim() === 'Completed') {
+                    completedVideos.add(videoId);
+                }
+            });
+        }
+
         function updateVideoSrc(videoId, videoUrl) {
             if (currentVideoId && !completedVideos.has(currentVideoId)) {
                 showCompletionPopup(currentVideoId, videoId, videoUrl);
             } else {
                 changeVideo(videoId, videoUrl);
             }
-        }
-
-        function showCompletionPopup(currentVideoId, newVideoId, newVideoUrl) {
-            const popup = document.createElement('div');
-            popup.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-            popup.innerHTML = `
-                <div class="bg-white p-6 rounded-lg shadow-lg">
-                    <h3 class="text-xl font-semibold mb-4">Video Completion</h3>
-                    <p class="mb-4">Have you completed the current video?</p>
-                    <div class="flex justify-end space-x-4">
-                        <button class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600" id="completed-btn">Completed</button>
-                        <button class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600" id="not-completed-btn">Not completed yet</button>
-                        <button class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400" id="cancel-btn">Cancel</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(popup);
-
-            document.getElementById('completed-btn').addEventListener('click', () => {
-                markVideoAsComplete(currentVideoId);
-                changeVideo(newVideoId, newVideoUrl);
-                document.body.removeChild(popup);
-            });
-
-            document.getElementById('not-completed-btn').addEventListener('click', () => {
-                changeVideo(newVideoId, newVideoUrl);
-                document.body.removeChild(popup);
-            });
-
-            document.getElementById('cancel-btn').addEventListener('click', () => {
-                document.body.removeChild(popup);
-            });
         }
 
         function changeVideo(videoId, videoUrl) {
@@ -188,6 +172,51 @@
             saveVideoProgress(videoId, 0);
             updateActiveVideo(videoId);
             updateMarkCompleteButton(completedVideos.has(videoId));
+        }
+
+        function updateCompletionStatus(videoId) {
+            const videoItem = document.querySelector(`.video-item[data-video-id="${videoId}"]`);
+            const completionStatus = videoItem.querySelector('.completion-status');
+            const checkIcon = videoItem.querySelector('[data-lucide="check-circle"]');
+            
+            completionStatus.textContent = 'Completed';
+            completionStatus.classList.remove('text-gray-500');
+            completionStatus.classList.add('text-green-500');
+            checkIcon.classList.remove('text-gray-300');
+            checkIcon.classList.add('text-green-500');
+        }
+
+        function markVideoAsComplete(videoId) {
+            if (!completedVideos.has(videoId)) {
+                completedVideos.add(videoId);
+                updateCompletionStatus(videoId);
+                updateProgress();
+                updateMarkCompleteButton(true);
+
+                // Send request to update progress on the server
+                fetch(`{{ url_for("student.update_progress", course_id=course.id, video_id="") }}${videoId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        progress: calculateOverallProgress()
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Progress updated:', data.progress);
+                        updateProgressDisplay(data.progress);
+                    }
+                })
+                .catch(error => console.error('Error updating progress:', error));
+            }
+        }
+
+        function calculateOverallProgress() {
+            const totalVideos = {{ videos|length }};
+            return (completedVideos.size / totalVideos) * 100;
         }
 
         function updateVideoInfo(videoId) {
@@ -201,25 +230,6 @@
             document.getElementById('current-video-description').textContent = videoDescription;
             document.getElementById('current-video-duration').textContent = videoDuration;
             document.getElementById('current-video-date').textContent = videoDate;
-        }
-
-        function markVideoAsComplete(videoId) {
-            completedVideos.add(videoId);
-            updateCompletionStatus(videoId);
-            updateProgress();
-            updateMarkCompleteButton(true);
-        }
-
-        function updateCompletionStatus(videoId) {
-            const videoItem = document.querySelector(`.video-item[data-video-id="${videoId}"]`);
-            const completionStatus = videoItem.querySelector('.completion-status');
-            const checkIcon = videoItem.querySelector('[data-lucide="check-circle"]');
-            
-            completionStatus.textContent = 'Completed';
-            completionStatus.classList.remove('text-gray-500');
-            completionStatus.classList.add('text-green-500');
-            checkIcon.classList.remove('text-gray-300');
-            checkIcon.classList.add('text-green-500');
         }
 
         function updateActiveVideo(videoId) {
@@ -247,9 +257,7 @@
         }
 
         function updateProgress() {
-            const totalVideos = {{ videos|length }};
-            const completedVideoCount = completedVideos.size;
-            const newProgress = (completedVideoCount / totalVideos) * 100;
+            const newProgress = calculateOverallProgress();
             
             fetch(`{{ url_for("student.update_progress", course_id=course.id, video_id="") }}${currentVideoId}`, {
                 method: 'POST',
@@ -294,17 +302,6 @@
             }
         }
 
-        function initializeCompletedVideos() {
-            const videoItems = document.querySelectorAll('.video-item');
-            videoItems.forEach(item => {
-                const videoId = item.getAttribute('data-video-id');
-                const completionStatus = item.querySelector('.completion-status');
-                if (completionStatus.textContent.trim() === 'Completed') {
-                    completedVideos.add(videoId);
-                }
-            });
-        }
-
         videoList.addEventListener('click', (event) => {
             const videoItem = event.target.closest('.video-item');
             if (videoItem) {
@@ -336,7 +333,7 @@
                 updateMarkCompleteButton(completedVideos.has(videoId));
             }
             // Initialize progress bar
-            updateProgressDisplay({{ overall_progress }});
+            updateProgressDisplay({{ overall_progress|default(0) }});
         });
 
         // Load saved progress
