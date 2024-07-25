@@ -181,15 +181,14 @@
         // Create learning progress chart
         const ctx = document.getElementById('learningProgressChart').getContext('2d');
         new Chart(ctx, {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels: {{ chart_data.labels|tojson }},
                 datasets: [{
                     label: 'Videos Completed',
                     data: {{ chart_data.data|tojson }},
-                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
                     borderColor: 'rgb(59, 130, 246)',
-                    borderWidth: 1
+                    tension: 0.1
                 }]
             },
             options: {
@@ -200,15 +199,6 @@
                         ticks: {
                             stepSize: 1
                         }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    title: {
-                        display: true,
-                        text: 'Videos Completed in the Last 7 Days'
                     }
                 }
             }

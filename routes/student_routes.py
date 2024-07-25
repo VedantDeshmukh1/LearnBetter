@@ -6,6 +6,7 @@ import re
 import requests
 from datetime import datetime, timedelta
 from functools import wraps
+import time
 
 bp = Blueprint('student', __name__)
 
@@ -625,9 +626,17 @@ def calculate_average_rating(user_id):
     
     return total_rating / rated_courses if rated_courses > 0 else 0
 
+def time_to_seconds(time_str):
+    """Convert time string (HH:MM:SS) to seconds."""
+    h, m, s = time_str.split(':')
+    return int(h) * 3600 + int(m) * 60 + int(s)
+
 @bp.route('/dashboard')
 @student_required
 def dashboard():
+    if 'user' not in session:
+        return redirect(url_for('student.login'))
+
     user_id = session['user_id']
     user = session['user']
 
@@ -640,22 +649,36 @@ def dashboard():
             return redirect(url_for('student.home'))
         
         student_data = student_doc.to_dict()
+        progress_data = student_data.get('progress', {})
 
-        # Update the analytics data in the dashboard route
+        # Calculate total learning hours
+        total_learning_hours = 0
+        for course_id, course_progress in progress_data.items():
+            course_ref = db.collection('course_details').document(course_id)
+            course_doc = course_ref.get()
+            if course_doc.exists:
+                course_data = course_doc.to_dict()
+                videos = course_data.get('videos', {})
+                for video_id, video_completed in course_progress.get('videos_completed', {}).items():
+                    if isinstance(video_completed, bool) and video_completed:
+                        video_duration = videos.get(video_id, {}).get('duration', '00:00:00')
+                        total_learning_hours += time_to_seconds(video_duration) / 3600
+                    elif isinstance(video_completed, dict) and video_completed.get('completed', False):
+                        video_duration = videos.get(video_id, {}).get('duration', '00:00:00')
+                        total_learning_hours += time_to_seconds(video_duration) / 3600
+
+        # Update student document with total learning hours
+        student_ref.update({
+            'total_learning_hours': total_learning_hours
+        })
+
+        # Update the analytics data
         analytics = {
             'total_courses': len(student_data.get('purchased_courses', [])),
-            'completed_courses': 0,
-            'total_learning_hours': 0,
+            'completed_courses': sum(1 for course in progress_data.values() if isinstance(course, dict) and course.get('overall_progress', 0) == 100),
+            'total_learning_hours': round(total_learning_hours, 2),
             'average_rating': calculate_average_rating(user_id)
         }
-
-        progress_data = student_data.get('progress', {})
-        if isinstance(progress_data, dict):
-            analytics['completed_courses'] = sum(1 for course in progress_data.values() if isinstance(course, dict) and course.get('overall_progress', 0) == 100)
-            analytics['total_learning_hours'] = sum(
-                sum(video.get('duration', 0) for video in course.get('videos', {}).values() if isinstance(video, dict) and video.get('completed', False))
-                for course in progress_data.values() if isinstance(course, dict)
-            ) / 3600  # Convert seconds to hours
 
         # Prepare chart data based on video completion
         chart_data = {
@@ -665,16 +688,12 @@ def dashboard():
         for i in range(7):  # Last 7 days
             date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
             chart_data['labels'].append(date)
-            if isinstance(progress_data, dict):
-                completed_videos = sum(
-                    1 for course in progress_data.values() if isinstance(course, dict)
-                    for video in course.get('videos_completed', {}).values()
-                    if isinstance(video, dict) and video.get('completed', False)
-                    and video.get('completion_date', '').startswith(date)
-                )
-                chart_data['data'].append(completed_videos)
-            else:
-                chart_data['data'].append(0)
+            chart_data['data'].append(sum(
+                1 for course in progress_data.values() if isinstance(course, dict)
+                for video in course.get('videos_completed', {}).values() if isinstance(video, dict)
+                and isinstance(video.get('completion_date'), datetime) 
+                and video.get('completion_date').strftime('%Y-%m-%d') == date
+            ))
         chart_data['labels'].reverse()
         chart_data['data'].reverse()
 
@@ -688,7 +707,7 @@ def dashboard():
             if course_doc.exists:
                 course = course_doc.to_dict()
                 course['id'] = course_doc.id
-                course['progress'] = progress_data.get(course_id, {}).get('overall_progress', 0) if isinstance(progress_data, dict) else 0
+                course['progress'] = progress_data.get(course_id, {}).get('overall_progress', 0)
                 courses.append(course)
 
         return render_template('student/dashboard.html', 
@@ -702,7 +721,7 @@ def dashboard():
         print(f"Error in dashboard route: {str(e)}")
         flash('An error occurred while loading the dashboard', 'error')
         return redirect(url_for('student.home'))
-
+    
 @bp.route('/student/update_video_progress/<video_id>', methods=['GET'])
 @student_required
 def update_video_progress(video_id):
