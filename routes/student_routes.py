@@ -418,6 +418,25 @@ def forgot_password():
             flash('Email not found. Please enter the correct email or register.', 'error')
     return render_template('student/forgot_password.html')
 
+def add_student_activity(user_id, activity_type, description):
+    student_ref = db.collection('student_details').document(user_id)
+    student_doc = student_ref.get()
+    
+    if student_doc.exists:
+        student_data = student_doc.to_dict()
+        activities = student_data.get('recent_activities', [])
+        
+        new_activity = {
+            'type': activity_type,
+            'description': description,
+            'timestamp': datetime.now().isoformat()  # Use ISO format string instead of SERVER_TIMESTAMP
+        }
+        
+        activities.insert(0, new_activity)
+        activities = activities[:5]  # Keep only the 5 most recent activities
+        
+        student_ref.update({'recent_activities': activities})
+
 @bp.route('/purchase_course/<course_id>', methods=['POST'])
 def purchase_course(course_id):
     if 'user' not in session:
@@ -465,6 +484,7 @@ def purchase_course(course_id):
     })
 
     flash('Course purchased successfully!', 'success')
+    add_student_activity(user_id, 'purchase', f"Purchased course: {course['course_name']}")
     return redirect(url_for('student.my_courses'))
 
 @bp.route('/update_progress/<course_id>/<video_id>', methods=['POST'])
@@ -496,6 +516,11 @@ def update_progress(course_id, video_id):
     student_data['progress'][course_id]['overall_progress'] = round(progress, 2)
     
     student_ref.update(student_data)
+    
+    if progress == 100:
+        course_doc = db.collection('course_details').document(course_id).get()
+        course_name = course_doc.to_dict()['course_name']
+        add_student_activity(user_id, 'completion', f"Completed course: {course_name}")
     
     return jsonify({'success': True, 'progress': student_data['progress'][course_id]['overall_progress']})
 
@@ -556,6 +581,7 @@ def rate_course(course_id):
         average_rating = sum(ratings.values()) / len(ratings)
         
         course_ref = db.collection('course_details').document(course_id)
+        course_data = course_ref.get().to_dict()
         
         update_course_ratings(course_ref, average_rating)
         
@@ -567,18 +593,15 @@ def rate_course(course_id):
                 'date': firestore.SERVER_TIMESTAMP
             }
         })
+        
+        add_student_activity(user_id, 'rating', f"Rated course: {course_data['course_name']}")
+        
         flash('Thank you for rating the course!', 'success')
         return redirect(url_for('student.my_courses'))
     
     return render_template('student/rate_course.html', course_id=course_id)
 
 # Add this function outside of any route
-def calculate_average_rating(user_id):
-    # Fetch all courses rated by the user
-    courses = db.collection('course_details').where(f'ratings.{user_id}', '!=', None).get()
-    total_rating = sum(course.to_dict()['ratings'][user_id]['rating'] for course in courses)
-    return total_rating / len(courses) if courses else 0
-
 def calculate_average_rating(user_id):
     # Fetch all courses
     courses = db.collection('course_details').stream()
@@ -647,7 +670,7 @@ def dashboard():
         chart_data['data'].reverse()
 
         # Fetch recent activities from the student_details collection
-        recent_activities = student_data.get('recent_activities', [])[:5]  # Get the last 5 activities
+        recent_activities = student_data.get('recent_activities', [])
 
         # Fetch course details
         courses = []

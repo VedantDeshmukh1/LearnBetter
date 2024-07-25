@@ -114,10 +114,10 @@
                 <ul class="space-y-4">
                     {% for activity in recent_activities %}
                     <li class="flex items-center">
-                        <i data-lucide="{{ activity.icon }}" class="mr-3 text-blue-600"></i>
+                        <i data-lucide="{{ 'shopping-cart' if activity.type == 'purchase' else 'star' if activity.type == 'rating' else 'check-circle' }}" class="mr-3 text-blue-600"></i>
                         <div>
                             <p class="font-semibold">{{ activity.description }}</p>
-                            <p class="text-sm text-gray-600">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                            <p class="text-sm text-gray-600">{{ activity.timestamp }}</p>
                         </div>
                     </li>
                     {% endfor %}
