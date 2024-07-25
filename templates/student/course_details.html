@@ -52,39 +52,14 @@
         }
 
         .description-text {
-            max-height: 4.5em; /* Approximately 3 lines of text */
+            max-height: 4.5em;
             overflow: hidden;
-            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            transition: max-height 0.3s ease-out;
             position: relative;
         }
 
         .description-expanded {
-            max-height: none;
-        }
-
-        .show-more-btn {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            background-color: white;
-            padding: 2px 5px;
-            font-size: 0.875rem;
-            color: #3B82F6;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border-radius: 4px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .show-more-btn:hover {
-            background-color: #EFF6FF;
-            color: #2563EB;
-        }
-
-        .show-more-btn:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+            max-height: none !important;
         }
 
         .description-text::after {
@@ -122,6 +97,35 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+
+        .scroll-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(255, 255, 255, 0.8);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            z-index: 10;
+        }
+
+        .scroll-btn:hover {
+            background-color: rgba(255, 255, 255, 1);
+        }
+
+        .scroll-btn-left {
+            left: -20px;
+        }
+
+        .scroll-btn-right {
+            right: -20px;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -150,7 +154,10 @@
             <div class="flex flex-col md:flex-row">
                 <div class="md:w-2/3 pr-8">
                     <h1 class="text-3xl font-bold mb-4">{{ course.course_name }}</h1>
-                    <p class="text-gray-600 mb-4">{{ course.course_description }}</p>
+                    <div class="description-text mb-4 cursor-pointer" id="courseDescription" onclick="toggleDescription()">
+                        <p>{{ course.course_description }}</p>
+                        <button class="show-less-btn hidden mt-2 text-blue-600 hover:text-blue-800" onclick="toggleDescription(event)">Show less</button>
+                    </div>
                     <div class="flex items-center mb-4">
                         <i data-lucide="user" class="mr-2"></i>
                         <span class="text-gray-700">Instructor: 
@@ -258,23 +265,31 @@
         {% endif %}
 
         <h2 class="text-2xl font-bold mb-6">People Also Purchased</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
-            {% for related_course in related_courses[:4] %}
-            <div class="course-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200">
-                <a href="{{ url_for('student.course_details', course_id=related_course.id) }}">
-                    <img src="{{ related_course.thumbnail }}" alt="{{ related_course.course_name }}" class="w-full h-40 object-cover">
-                    <div class="p-4">
-                        <h3 class="font-semibold text-lg mb-1">{{ related_course.course_name }}</h3>
-                        <a href="{{ url_for('teacher.public_profile', teacher_id=related_course.course_instructor_id) }}" class="text-sm text-blue-600 hover:underline">{{ related_course.course_instructor }}</a>
-                        {% if related_course.average_rating and related_course.total_ratings > 0 %}
-                            <p class="text-sm text-gray-600">Rating: {{ related_course.average_rating|round(1) }}★ ({{ related_course.total_ratings }} reviews)</p>
-                        {% endif %}
-                        <p class="text-sm text-gray-600">Duration: {{ related_course.course_duration }} hours</p>
-                        <p class="text-sm font-bold mt-2">₹{{ related_course.course_price }}</p>
-                    </div>
-                </a>
+        <div class="relative">
+            <div class="overflow-x-auto flex space-x-4 pb-4 scrollbar-hide" id="relatedCoursesContainer">
+                {% for related_course in related_courses %}
+                <div class="course-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200 flex-shrink-0 w-64">
+                    <a href="{{ url_for('student.course_details', course_id=related_course.id) }}">
+                        <img src="{{ related_course.thumbnail }}" alt="{{ related_course.course_name }}" class="w-full h-40 object-cover">
+                        <div class="p-4">
+                            <h3 class="font-semibold text-lg mb-1">{{ related_course.course_name }}</h3>
+                            <a href="{{ url_for('teacher.public_profile', teacher_id=related_course.course_instructor_id) }}" class="text-sm text-blue-600 hover:underline">{{ related_course.course_instructor }}</a>
+                            {% if related_course.average_rating and related_course.total_ratings > 0 %}
+                                <p class="text-sm text-gray-600">Rating: {{ related_course.average_rating|round(1) }}★ ({{ related_course.total_ratings }} reviews)</p>
+                            {% endif %}
+                            <p class="text-sm text-gray-600">Duration: {{ related_course.course_duration }} hours</p>
+                            <p class="text-sm font-bold mt-2">₹{{ related_course.course_price }}</p>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
+            <button class="scroll-btn scroll-btn-left hidden" id="scrollLeftBtn" onclick="scrollRelatedCourses('left')">
+                <i data-lucide="chevron-left"></i>
+            </button>
+            <button class="scroll-btn scroll-btn-right hidden" id="scrollRightBtn" onclick="scrollRelatedCourses('right')">
+                <i data-lucide="chevron-right"></i>
+            </button>
         </div>
     </main>
 
@@ -328,6 +343,25 @@
         // Initialize Lucide icons
         lucide.createIcons();
 
+        // Show more/less functionality for course description
+        function toggleDescription(event) {
+            const description = document.getElementById('courseDescription');
+            const showLessBtn = description.querySelector('.show-less-btn');
+            
+            if (description) {
+                description.classList.toggle('description-expanded');
+                showLessBtn.classList.toggle('hidden');
+                
+                // Toggle the gradient overlay
+                description.style.maxHeight = description.classList.contains('description-expanded') ? 'none' : '4.5em';
+                
+                // Prevent the click event from bubbling up when clicking the "Show less" button
+                if (event) {
+                    event.stopPropagation();
+                }
+            }
+        }
+
         function showPurchaseInfo() {
             const infoElement = document.createElement('div');
             infoElement.className = 'fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50';
@@ -341,27 +375,65 @@
             document.body.appendChild(infoElement);
         }
 
+        // Video container scroll functionality
         const videoContainer = document.getElementById('videoContainer');
-        const scrollLeftBtn = document.getElementById('scrollLeft');
-        const scrollRightBtn = document.getElementById('scrollRight');
+        const videoScrollLeftBtn = document.getElementById('scrollLeft');
+        const videoScrollRightBtn = document.getElementById('scrollRight');
 
-        function updateScrollButtons() {
-            scrollLeftBtn.classList.toggle('hidden', videoContainer.scrollLeft <= 0);
-            scrollRightBtn.classList.toggle('hidden', videoContainer.scrollLeft + videoContainer.clientWidth >= videoContainer.scrollWidth);
+        function updateVideoScrollButtons() {
+            if (videoContainer && videoScrollLeftBtn && videoScrollRightBtn) {
+                videoScrollLeftBtn.classList.toggle('hidden', videoContainer.scrollLeft <= 0);
+                videoScrollRightBtn.classList.toggle('hidden', videoContainer.scrollLeft + videoContainer.clientWidth >= videoContainer.scrollWidth);
+            }
         }
 
-        videoContainer.addEventListener('scroll', updateScrollButtons);
-        window.addEventListener('resize', updateScrollButtons);
+        if (videoContainer && videoScrollLeftBtn && videoScrollRightBtn) {
+            videoContainer.addEventListener('scroll', updateVideoScrollButtons);
+            window.addEventListener('resize', updateVideoScrollButtons);
 
-        scrollLeftBtn.addEventListener('click', () => {
-            videoContainer.scrollBy({ left: -200, behavior: 'smooth' });
-        });
+            videoScrollLeftBtn.addEventListener('click', () => {
+                videoContainer.scrollBy({ left: -200, behavior: 'smooth' });
+            });
 
-        scrollRightBtn.addEventListener('click', () => {
-            videoContainer.scrollBy({ left: 200, behavior: 'smooth' });
-        });
+            videoScrollRightBtn.addEventListener('click', () => {
+                videoContainer.scrollBy({ left: 200, behavior: 'smooth' });
+            });
 
-        updateScrollButtons();
+            updateVideoScrollButtons();
+        }
+
+        // Related courses scroll functionality
+        const relatedCoursesContainer = document.getElementById('relatedCoursesContainer');
+        const scrollLeftBtn = document.getElementById('scrollLeftBtn');
+        const scrollRightBtn = document.getElementById('scrollRightBtn');
+
+        function updateRelatedCoursesScrollButtons() {
+            if (relatedCoursesContainer && scrollLeftBtn && scrollRightBtn) {
+                scrollLeftBtn.classList.toggle('hidden', relatedCoursesContainer.scrollLeft <= 0);
+                scrollRightBtn.classList.toggle('hidden', relatedCoursesContainer.scrollLeft + relatedCoursesContainer.clientWidth >= relatedCoursesContainer.scrollWidth);
+            }
+        }
+
+        function scrollRelatedCourses(direction) {
+            if (relatedCoursesContainer) {
+                const scrollAmount = direction === 'left' ? -200 : 200;
+                relatedCoursesContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            }
+        }
+
+        if (relatedCoursesContainer && scrollLeftBtn && scrollRightBtn) {
+            relatedCoursesContainer.addEventListener('scroll', updateRelatedCoursesScrollButtons);
+            window.addEventListener('resize', updateRelatedCoursesScrollButtons);
+
+            scrollLeftBtn.addEventListener('click', () => scrollRelatedCourses('left'));
+            scrollRightBtn.addEventListener('click', () => scrollRelatedCourses('right'));
+
+            updateRelatedCoursesScrollButtons();
+        }
+
+        // Call initial updates
+        updateVideoScrollButtons();
+        updateRelatedCoursesScrollButtons();
     </script>
 </body>
 </html>
