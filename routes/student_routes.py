@@ -242,7 +242,6 @@ def my_courses():
     return render_template('student/my_courses.html', courses=courses)
 
 @bp.route('/course/<course_id>')
-@student_required
 def course_details(course_id):
     course_doc = db.collection('course_details').document(course_id).get()
     if course_doc.exists:
@@ -355,7 +354,13 @@ def video_player(course_id):
         video_data['description'] = video_data.get('description', 'No description available.')
         video_data['duration'] = video_data.get('duration', 'Duration not available')
         video_data['date'] = video_data.get('date', 'Date not available')
-        video_data['completed'] = videos_completed.get(video_id, False)
+        
+        # Handle both new and old data structures
+        if isinstance(videos_completed.get(video_id), dict):
+            video_data['completed'] = videos_completed.get(video_id, {}).get('completed', False)
+        else:
+            video_data['completed'] = videos_completed.get(video_id, False)
+        
         videos.append(video_data)
 
     # Sort videos by sequence
@@ -502,6 +507,7 @@ def update_progress(course_id, video_id):
     user_id = session['user_id']
     data = request.json
     progress = data['progress']
+    timestamp = data['timestamp']
     
     student_ref = db.collection('student_details').document(user_id)
     student_doc = student_ref.get()
@@ -516,8 +522,11 @@ def update_progress(course_id, video_id):
     if course_id not in student_data['progress']:
         student_data['progress'][course_id] = {'overall_progress': 0, 'videos_completed': {}}
     
-    # Update the completed status of the video
-    student_data['progress'][course_id]['videos_completed'][video_id] = True
+    # Update the completed status of the video with timestamp
+    student_data['progress'][course_id]['videos_completed'][video_id] = {
+        'completed': True,
+        'completion_date': timestamp
+    }
     
     # Update overall progress
     student_data['progress'][course_id]['overall_progress'] = round(progress, 2)
@@ -658,11 +667,13 @@ def dashboard():
             date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
             chart_data['labels'].append(date)
             if isinstance(progress_data, dict):
-                chart_data['data'].append(sum(
+                completed_videos = sum(
                     1 for course in progress_data.values() if isinstance(course, dict)
-                    for video in course.get('videos_completed', {}).values() if isinstance(video, dict)
+                    for video in course.get('videos_completed', {}).values()
+                    if isinstance(video, dict) and video.get('completed', False)
                     and video.get('completion_date', '').startswith(date)
-                ))
+                )
+                chart_data['data'].append(completed_videos)
             else:
                 chart_data['data'].append(0)
         chart_data['labels'].reverse()

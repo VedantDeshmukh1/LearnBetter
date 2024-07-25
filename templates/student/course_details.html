@@ -102,6 +102,26 @@
         .description-expanded::after {
             opacity: 0;
         }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -182,31 +202,35 @@
         </div>
 
         <h2 class="text-2xl font-bold mb-4">Course Content</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
-            {% for video in course.sorted_videos %}
-                <div class="video-item course-card overflow-hidden">
-                    <img src="{{ video.thumbnail }}" alt="{{ video.title }} thumbnail" class="w-full h-40 object-cover">
-                    <div class="p-4">
-                        <h3 class="font-semibold text-lg mb-2">{{ video.title }}</h3>
-                        <p class="text-sm text-gray-600 mb-2">Duration: {{ video.duration }}</p>
-                        <div class="relative">
-                            <p class="text-sm text-gray-600 mb-4 description-text" id="description-{{ loop.index }}" data-full-description="{{ video.description }}">
-                                {{ video.description[:100] }}{% if video.description|length > 100 %}...{% endif %}
-                            </p>
-                            {% if video.description|length > 10 %}
-                                <button onclick="toggleDescription(this, {{ loop.index }})" class="show-more-btn" id="show-more-{{ loop.index }}">Show more</button>
-                            {% endif %}
+        <div class="relative">
+            <div class="overflow-x-auto flex space-x-4 pb-4 scrollbar-hide" id="videoContainer">
+                {% for video in course.sorted_videos %}
+                    <div class="video-item course-card flex-shrink-0 w-64">
+                        <img src="{{ video.thumbnail }}" alt="{{ video.title }} thumbnail" class="w-full h-40 object-cover">
+                        <div class="p-4 flex flex-col h-48">
+                            <h3 class="font-semibold text-lg mb-2 line-clamp-2">{{ video.title }}</h3>
+                            <p class="text-sm text-gray-600 mb-2">Duration: {{ video.duration }}</p>
+                            <p class="text-sm text-gray-600 mb-4 line-clamp-3 flex-grow">{{ video.description }}</p>
+                            <div class="mt-auto">
+                                {% if 'user' in session and course.id in student_details.purchased_courses %}
+                                    <a href="{{ url_for('student.video_player', course_id=course.id) }}?video_id={{ video.id }}" class="block bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700 text-center">Watch Video</a>
+                                {% else %}
+                                    <button onclick="showPurchaseInfo()" class="w-full bg-gray-300 text-gray-700 px-3 py-1 rounded-md text-sm cursor-pointer text-center">Watch Video</button>
+                                {% endif %}
+                            </div>
                         </div>
-                        {% if 'user' in session and course.id in student_details.purchased_courses %}
-                            <a href="{{ url_for('student.video_player', course_id=course.id) }}?video_id={{ video.id }}" class="bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700">Watch Video</a>
-                        {% elif loop.index != 1 %}
-                            <button onclick="showPurchaseMessage()" class="bg-gray-300 text-gray-700 px-3 py-1 rounded-md text-sm cursor-not-allowed">Watch Video</button>
-                        {% endif %}
                     </div>
-                </div>
-            {% endfor %}
+                {% endfor %}
+            </div>
+            <button class="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-50 p-2 rounded-full shadow-md hidden" id="scrollLeft">
+                <i data-lucide="chevron-left"></i>
+            </button>
+            <button class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-50 p-2 rounded-full shadow-md hidden" id="scrollRight">
+                <i data-lucide="chevron-right"></i>
+            </button>
         </div>
 
+        {% if course.reviews %}
         <h2 class="text-2xl font-bold mb-4">Student Reviews</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             {% for review in course.reviews %}
@@ -231,6 +255,7 @@
                 </div>
             {% endfor %}
         </div>
+        {% endif %}
 
         <h2 class="text-2xl font-bold mb-6">People Also Purchased</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
@@ -303,33 +328,40 @@
         // Initialize Lucide icons
         lucide.createIcons();
 
-        function showPurchaseMessage() {
-            alert("Please purchase the course to watch the videos.");
+        function showPurchaseInfo() {
+            const infoElement = document.createElement('div');
+            infoElement.className = 'fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50';
+            infoElement.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-xl max-w-md">
+                    <h3 class="text-xl font-bold mb-4">Purchase Required</h3>
+                    <p class="mb-4">Please purchase the course to watch this video.</p>
+                    <button onclick="this.closest('div.fixed').remove()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Close</button>
+                </div>
+            `;
+            document.body.appendChild(infoElement);
         }
 
-        // Disable right-click on the iframe
-        document.querySelector('.video-container iframe').addEventListener('contextmenu', function(e) {
-            e.preventDefault();
+        const videoContainer = document.getElementById('videoContainer');
+        const scrollLeftBtn = document.getElementById('scrollLeft');
+        const scrollRightBtn = document.getElementById('scrollRight');
+
+        function updateScrollButtons() {
+            scrollLeftBtn.classList.toggle('hidden', videoContainer.scrollLeft <= 0);
+            scrollRightBtn.classList.toggle('hidden', videoContainer.scrollLeft + videoContainer.clientWidth >= videoContainer.scrollWidth);
+        }
+
+        videoContainer.addEventListener('scroll', updateScrollButtons);
+        window.addEventListener('resize', updateScrollButtons);
+
+        scrollLeftBtn.addEventListener('click', () => {
+            videoContainer.scrollBy({ left: -200, behavior: 'smooth' });
         });
 
-        function toggleDescription(button, index) {
-            const descriptionElement = document.getElementById(`description-${index}`);
-            const fullDescription = descriptionElement.dataset.fullDescription;
-            
-            if (descriptionElement.classList.contains('description-expanded')) {
-                descriptionElement.classList.remove('description-expanded');
-                descriptionElement.style.maxHeight = '4.5em';
-                setTimeout(() => {
-                    descriptionElement.textContent = fullDescription.slice(0, 100) + '...';
-                    button.textContent = 'Show more';
-                }, 300);
-            } else {
-                descriptionElement.classList.add('description-expanded');
-                descriptionElement.textContent = fullDescription;
-                descriptionElement.style.maxHeight = descriptionElement.scrollHeight + 'px';
-                button.textContent = 'Show less';
-            }
-        }
+        scrollRightBtn.addEventListener('click', () => {
+            videoContainer.scrollBy({ left: 200, behavior: 'smooth' });
+        });
+
+        updateScrollButtons();
     </script>
 </body>
 </html>
