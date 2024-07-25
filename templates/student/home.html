@@ -79,6 +79,7 @@
         </div>
         {% endif %}
 
+        {% if show_popular_courses %}
         <h2 class="text-2xl font-bold mb-6">Most Popular Courses</h2>
         <div id="popular-courses" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
             {% for course in courses %}
@@ -103,6 +104,7 @@
         </div>
         {% if show_more_button %}
             <button id="load-more" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Show more courses</button>
+        {% endif %}
         {% endif %}
     </main>
 
@@ -203,11 +205,8 @@
                 const courseCard = document.createElement('a');
                 courseCard.href = `{{ url_for('student.course_details', course_id='') }}${course.id}`;
                 courseCard.className = 'flex-shrink-0 w-64 bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200';
-                const thumbnailSrc = course.videos && Object.values(course.videos).length > 0
-                    ? Object.values(course.videos)[0].thumbnail
-                    : "{{ url_for('static', filename='images/default_thumbnail.jpg') }}";
                 courseCard.innerHTML = `
-                    <img src="${thumbnailSrc}" alt="${course.course_name}" class="w-full h-40 object-cover">
+                    <img src="${course.thumbnail}" alt="${course.course_name}" class="w-full h-40 object-cover">
                     <div class="p-4">
                         <h3 class="font-semibold text-lg mb-1">${course.course_name}</h3>
                         <div class="relative pt-1">

@@ -18,8 +18,9 @@ def home():
         course = doc.to_dict()
         course['id'] = doc.id
         
-        # Get the thumbnail of the first video
-        first_video = next((v for v in course['videos'].values() if v['video_seq'] == 1), None)
+        # Get the thumbnail of the first video by sequence
+        sorted_videos = sorted(course['videos'].values(), key=lambda x: x['video_seq'])
+        first_video = sorted_videos[0] if sorted_videos else None
         course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
         
         # Calculate average rating and total ratings
@@ -36,6 +37,7 @@ def home():
     show_more_button = len(courses) == 8
     
     user_courses = []
+    purchased_course_ids = []
     if 'user' in session:
         user_id = session['user_id']
         student_ref = db.collection('student_details').document(user_id)
@@ -51,22 +53,19 @@ def home():
                     course = course_doc.to_dict()
                     course['id'] = course_doc.id
                     
-                    # Check if new videos have been added
-                    total_videos = len(course['videos'])
-                    completed_videos = len(progress.get(course_id, {}).get('videos_completed', {}))
-                    
-                    if completed_videos > total_videos:
-                        # Update progress if new videos have been added
-                        new_progress = (completed_videos / total_videos) * 100
-                        progress[course_id]['overall_progress'] = new_progress
-                        student_ref.update({'progress': progress})
+                    # Get the thumbnail of the first video by sequence
+                    sorted_videos = sorted(course['videos'].values(), key=lambda x: x['video_seq'])
+                    first_video = sorted_videos[0] if sorted_videos else None
+                    course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
                     
                     course['progress'] = progress.get(course_id, {}).get('overall_progress', 0)
                     user_courses.append(course)
             
             courses = [course for course in courses if course['id'] not in purchased_course_ids]
     
-    return render_template('student/home.html', courses=courses, user_courses=user_courses, show_more_button=show_more_button)
+    show_popular_courses = len(courses) > 0
+    
+    return render_template('student/home.html', courses=courses, user_courses=user_courses, show_more_button=show_more_button, show_popular_courses=show_popular_courses)
 
 @bp.route('/get_user_courses')
 def get_user_courses():
@@ -87,6 +86,12 @@ def get_user_courses():
                 course = course_doc.to_dict()
                 course['id'] = course_doc.id
                 course['progress'] = progress.get(course_id, {}).get('overall_progress', 0)
+                
+                # Get the thumbnail of the first video by sequence
+                sorted_videos = sorted(course['videos'].values(), key=lambda x: x['video_seq'])
+                first_video = sorted_videos[0] if sorted_videos else None
+                course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
+                
                 user_courses.append(course)
         return jsonify(user_courses)
     else:
