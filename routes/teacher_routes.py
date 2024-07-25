@@ -369,17 +369,25 @@ def update_video_order(course_id):
     course_ref = db.collection('course_details').document(course_id)
     
     try:
-        # Update each video's sequence in a transaction
         @firestore.transactional
         def update_transaction(transaction):
+            course_snapshot = course_ref.get(transaction=transaction)
+            course_data = course_snapshot.to_dict()
+            videos = course_data.get('videos', {})
+            
             for item in video_order:
                 video_id = item['id']
                 new_seq = item['seq']
-                transaction.update(course_ref, {
-                    f'videos.{video_id}.video_seq': new_seq
-                })
-        
-        db.transaction(update_transaction)
+                if video_id in videos:
+                    videos[video_id]['video_seq'] = new_seq
+            
+            transaction.update(course_ref, {'videos': videos})
+
+        # Create a transaction object
+        transaction = db.transaction()
+        # Execute the transaction
+        update_transaction(transaction)
+
         return jsonify({'success': True})
     except Exception as e:
         print(f"Error updating video order: {str(e)}")

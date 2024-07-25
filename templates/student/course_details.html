@@ -193,7 +193,7 @@
                             <p class="text-sm text-gray-600 mb-4 description-text" id="description-{{ loop.index }}" data-full-description="{{ video.description }}">
                                 {{ video.description[:100] }}{% if video.description|length > 100 %}...{% endif %}
                             </p>
-                            {% if video.description|length > 100 %}
+                            {% if video.description|length > 10 %}
                                 <button onclick="toggleDescription(this, {{ loop.index }})" class="show-more-btn" id="show-more-{{ loop.index }}">Show more</button>
                             {% endif %}
                         </div>
