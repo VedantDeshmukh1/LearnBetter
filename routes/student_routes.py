@@ -5,8 +5,18 @@ from utils import validate_email, update_course_ratings, generate_username, gene
 import re
 import requests
 from datetime import datetime, timedelta
+from functools import wraps
 
 bp = Blueprint('student', __name__)
+
+def student_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session or session['user'].get('role') != 'student':
+            flash('Access denied. Students only.', 'error')
+            return redirect(url_for('student.login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 @bp.route('/')
 @bp.route('/home')
@@ -135,7 +145,8 @@ def register():
                 "username": username,
                 "password": password,
                 "first_name": first_name,
-                "last_name": last_name
+                "last_name": last_name,
+                "role": "student"
             }
             rdb.child("users").child(user_id).set(user_data_rdb)
             
@@ -190,6 +201,11 @@ def login():
                     break
             
             if user_data:
+                # Check if the user is a student
+                if user_data.get('role') != 'student':
+                    flash('Access denied. This login is for students only.', 'error')
+                    return render_template('student/login.html')
+                
                 user = auth.sign_in_with_email_and_password(user_data['email'], password)
                 user_id = user['localId']
                 
@@ -205,10 +221,8 @@ def login():
     return render_template('student/login.html')
 
 @bp.route('/my_courses')
+@student_required
 def my_courses():
-    if 'user' not in session:
-        return redirect(url_for('student.login'))
-
     user_id = session['user_id']
     student_ref = db.collection('student_details').document(user_id)
     student_doc = student_ref.get()
@@ -228,6 +242,7 @@ def my_courses():
     return render_template('student/my_courses.html', courses=courses)
 
 @bp.route('/course/<course_id>')
+@student_required
 def course_details(course_id):
     course_doc = db.collection('course_details').document(course_id).get()
     if course_doc.exists:
@@ -291,6 +306,7 @@ def course_details(course_id):
         return redirect(url_for('student.home'))
 
 @bp.route('/search_courses')
+@student_required
 def search_courses():
     query = request.args.get('query', '').lower()
     courses = []
@@ -316,10 +332,8 @@ def search_courses():
     return jsonify(courses)
 
 @bp.route('/video_player/<course_id>')
+@student_required
 def video_player(course_id):
-    if 'user' not in session:
-        return redirect(url_for('student.login'))
-
     user_id = session['user_id']
     student_ref = db.collection('student_details').document(user_id)
     student = student_ref.get().to_dict()
@@ -352,10 +366,8 @@ def video_player(course_id):
     return render_template('student/video_player.html', course=course, videos=videos, progress_data=progress_data, overall_progress=overall_progress)
 
 @bp.route('/my_reviews')
+@student_required
 def my_reviews():
-    if 'user' not in session:
-        return redirect(url_for('student.login'))
-    
     user_id = session['user_id']
     student_ref = db.collection('student_details').document(user_id)
     student_doc = student_ref.get()
@@ -379,9 +391,8 @@ def my_reviews():
     return render_template('student/my_reviews.html', reviews=reviews)
 
 @bp.route('/profile')
+@student_required
 def profile():
-    if 'user' not in session:
-        return redirect(url_for('login'))
     return render_template('student/profile.html', user=session['user'])
 
 @bp.route('/logout')
@@ -438,10 +449,8 @@ def add_student_activity(user_id, activity_type, description):
         student_ref.update({'recent_activities': activities})
 
 @bp.route('/purchase_course/<course_id>', methods=['POST'])
+@student_required
 def purchase_course(course_id):
-    if 'user' not in session:
-        return redirect(url_for('login'))
-
     user_id = session['user_id']
     
     # Add course to student_details collection
@@ -488,10 +497,8 @@ def purchase_course(course_id):
     return redirect(url_for('student.my_courses'))
 
 @bp.route('/update_progress/<course_id>/<video_id>', methods=['POST'])
+@student_required
 def update_progress(course_id, video_id):
-    if 'user' not in session:
-        return jsonify({'error': 'User not logged in'}), 401
-
     user_id = session['user_id']
     data = request.json
     progress = data['progress']
@@ -525,10 +532,8 @@ def update_progress(course_id, video_id):
     return jsonify({'success': True, 'progress': student_data['progress'][course_id]['overall_progress']})
 
 @bp.route('/save_video_progress', methods=['POST'])
+@student_required
 def save_video_progress():
-    if 'user' not in session:
-        return jsonify({'error': 'User not logged in'}), 401
-
     user_id = session['user_id']
     data = request.json
     video_id = data['video_id']
@@ -547,10 +552,8 @@ def save_video_progress():
 video_progress = {}
 
 @bp.route('/get_video_progress/<video_id>')
+@student_required
 def get_video_progress(video_id):
-    if 'user' not in session:
-        return jsonify({'error': 'User not logged in'}), 401
-
     user_id = session['user_id']
     course_id = request.args.get('course_id')
 
@@ -558,10 +561,8 @@ def get_video_progress(video_id):
     return jsonify({'timestamp': timestamp})
 
 @bp.route('/rate_course/<course_id>', methods=['GET', 'POST'])
+@student_required
 def rate_course(course_id):
-    if 'user' not in session:
-        return redirect(url_for('student.login'))
-    
     user_id = session['user_id']
     
     if request.method == 'POST':
@@ -617,10 +618,8 @@ def calculate_average_rating(user_id):
     return total_rating / rated_courses if rated_courses > 0 else 0
 
 @bp.route('/dashboard')
+@student_required
 def dashboard():
-    if 'user' not in session:
-        return redirect(url_for('student.login'))
-
     user_id = session['user_id']
     user = session['user']
 
@@ -695,10 +694,8 @@ def dashboard():
         return redirect(url_for('student.home'))
 
 @bp.route('/student/update_video_progress/<video_id>', methods=['GET'])
+@student_required
 def update_video_progress(video_id):
-    if 'user' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-
     user_id = session['user_id']
     course_id = request.args.get('course_id')
 

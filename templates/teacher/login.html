@@ -30,6 +30,20 @@
         </nav>
     </header>
 
+    <!-- Add this right after the <body> tag -->
+    <div id="flash-message" class="fixed top-0 left-0 right-0 z-50 hidden">
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative max-w-md mx-auto mt-6" role="alert">
+            <strong class="font-bold">Access Denied!</strong>
+            <span class="block sm:inline" id="flash-message-text"></span>
+            <span class="absolute top-0 bottom-0 right-0 px-4 py-3">
+                <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" onclick="closeFlashMessage()">
+                    <title>Close</title>
+                    <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/>
+                </svg>
+            </span>
+        </div>
+    </div>
+
     <main class="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-md w-full space-y-8 bg-white bg-opacity-90 p-10 rounded-xl shadow-2xl">
             <div>
@@ -66,5 +80,34 @@
             <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
         </div>
     </footer>
+
+    <!-- Add this script right before the closing </body> tag -->
+    <script>
+        function showFlashMessage(message) {
+            const flashMessage = document.getElementById('flash-message');
+            const flashMessageText = document.getElementById('flash-message-text');
+            flashMessageText.textContent = message;
+            flashMessage.classList.remove('hidden');
+            setTimeout(() => {
+                closeFlashMessage();
+            }, 5000);
+        }
+
+        function closeFlashMessage() {
+            const flashMessage = document.getElementById('flash-message');
+            flashMessage.classList.add('hidden');
+        }
+
+        // Check for flash messages on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showFlashMessage("{{ message }}");
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
 </body>
 </html>

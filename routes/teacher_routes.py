@@ -17,8 +17,18 @@ from PIL import Image
 from googleapiclient.errors import HttpError
 import regex as re
 from utils import get_drive_service, upload_to_drive, get_drive_file_id
+from functools import wraps
 
 bp = Blueprint('teacher', __name__, url_prefix='/teacher')
+
+def teacher_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session or session['user'].get('role') != 'teacher':
+            flash('Access denied. Teachers only.', 'error')
+            return redirect(url_for('teacher.login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -30,11 +40,16 @@ def login():
             users = rdb.child("users").get()
             user_data = None
             for user in users.each():
-                if user.val()['username'] == username and user.val()['role'] == 'teacher':
+                if user.val()['username'] == username:
                     user_data = user.val()
                     break
             
             if user_data:
+                # Check if the user is a teacher
+                if user_data.get('role') != 'teacher':
+                    flash('Access denied. This login is for teachers only.', 'error')
+                    return render_template('teacher/login.html')
+                
                 user = auth.sign_in_with_email_and_password(user_data['email'], password)
                 user_id = user['localId']
                 
@@ -43,7 +58,7 @@ def login():
                 flash('Login successful', 'success')
                 return redirect(url_for('teacher.dashboard'))
             else:
-                flash('User not found or not a teacher', 'error')
+                flash('User not found', 'error')
         except Exception as e:
             print(f"Login error: {str(e)}")
             flash('Invalid credentials', 'error')
@@ -139,10 +154,8 @@ def register():
     return render_template('teacher/register.html')
 
 @bp.route('/profile', methods=['GET', 'POST'])
+@teacher_required
 def profile():
-    if 'user' not in session or session['user']['role'] != 'teacher':
-        return redirect(url_for('teacher.login'))
-    
     user_id = session['user_id']
     teacher_doc_ref = db.collection('teacher_details').document(user_id)
 
@@ -229,10 +242,8 @@ def profile():
         return render_template('teacher/profile.html', teacher=None)
 
 @bp.route('/update_profile', methods=['POST'])
+@teacher_required
 def update_profile():
-    if 'user' not in session or session['user']['role'] != 'teacher':
-        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
-    
     user_id = session['user_id']
     data = request.json
     
@@ -282,10 +293,8 @@ def public_profile(teacher_id):
         return redirect(url_for('student.home'))
 
 @bp.route('/dashboard')
+@teacher_required
 def dashboard():
-    if 'user' not in session or session['user']['role'] != 'teacher':
-        return redirect(url_for('teacher.login'))
-    
     user_id = session['user_id']
     courses = []
     total_enrollments = 0
@@ -316,10 +325,8 @@ def dashboard():
     return render_template('teacher/dashboard.html', user=session['user'], courses=courses, analytics=analytics)
 
 @bp.route('/add_course', methods=['GET', 'POST'])
+@teacher_required
 def add_course():
-    if 'user' not in session or session['user']['role'] != 'teacher':
-        return redirect(url_for('teacher.login'))
-    
     if request.method == 'POST':
         course_name = request.form['course_name']
         course_duration = int(request.form['course_duration'])
@@ -360,10 +367,8 @@ def add_course():
     return render_template('teacher/add_course.html')
 
 @bp.route('/edit_course/<course_id>', methods=['GET', 'POST'])
+@teacher_required
 def edit_course(course_id):
-    if 'user' not in session or session['user']['role'] != 'teacher':
-        return redirect(url_for('teacher.login'))
-    
     course_ref = db.collection('course_details').document(course_id)
     course = course_ref.get().to_dict()
     course['id'] = course_id
@@ -386,10 +391,8 @@ def edit_course(course_id):
 
 
 @bp.route('/update_video_order/<course_id>', methods=['POST'])
+@teacher_required
 def update_video_order(course_id):
-    if 'user' not in session or session['user']['role'] != 'teacher':
-        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-    
     video_order = request.json
     course_ref = db.collection('course_details').document(course_id)
     
@@ -420,10 +423,8 @@ def update_video_order(course_id):
 
 
 @bp.route('/view_course/<course_id>')
+@teacher_required
 def view_course(course_id):
-    if 'user' not in session or session['user']['role'] != 'teacher':
-        return redirect(url_for('teacher.login'))
-    
     course_ref = db.collection('course_details').document(course_id)
     course = course_ref.get().to_dict()
     course['id'] = course_id
@@ -431,10 +432,8 @@ def view_course(course_id):
     return render_template('teacher/view_course.html', course=course)
 
 @bp.route('/add_video/<course_id>', methods=['GET', 'POST'])
+@teacher_required
 def add_video(course_id):
-    if 'user' not in session or session['user']['role'] != 'teacher':
-        return redirect(url_for('teacher.login'))
-    
     course_ref = db.collection('course_details').document(course_id)
     course = course_ref.get().to_dict()
     course_name = course.get('course_name', 'Unknown')
@@ -498,10 +497,8 @@ def add_video(course_id):
     return render_template('teacher/add_video.html', course_id=course_id)
 
 @bp.route('/edit_video/<course_id>/<video_id>', methods=['GET', 'POST'])
+@teacher_required
 def edit_video(course_id, video_id):
-    if 'user' not in session or session['user']['role'] != 'teacher':
-        return redirect(url_for('teacher.login'))
-    
     course_ref = db.collection('course_details').document(course_id)
     course = course_ref.get().to_dict()
     video = course['videos'][video_id]
@@ -605,10 +602,8 @@ def create_thumbnail(video_path, thumbnail_path):
         return False
 
 @bp.route('/delete_video/<course_id>/<video_id>', methods=['POST'])
+@teacher_required
 def delete_video(course_id, video_id):
-    if 'user' not in session or session['user']['role'] != 'teacher':
-        return redirect(url_for('teacher.login'))
-    
     course_ref = db.collection('course_details').document(course_id)
     course = course_ref.get().to_dict()
     
