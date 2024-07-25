@@ -1,0 +1,125 @@
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:03:17] "[33mGET / HTTP/1.1[0m" 404 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:03:18] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:03:20] "[33mGET / HTTP/1.1[0m" 404 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:03:51] "[33mGET / HTTP/1.1[0m" 404 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:03:53] "[33mGET / HTTP/1.1[0m" 404 -
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\test\\add_to_db.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\test\\add_to_db.py', reloading
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:05:35] "[32mGET / HTTP/1.1[0m" 302 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:05:35] "GET /login HTTP/1.1" 200 -
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\test\\add_to_db.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\test\\add_to_db.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\test\\add_to_db.py', reloading
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\test\\config.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\test\\config.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\test\\config.py', reloading
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug: * Detected change in 'C:\\Python311\\Lib\\sysconfig.py', reloading
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:16:36] "GET /login HTTP/1.1" 200 -
+INFO:werkzeug: * Detected change in 'C:\\Python311\\Lib\\typing.py', reloading
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug: * Detected change in 'C:\\Python311\\Lib\\types.py', reloading
+INFO:werkzeug: * Detected change in 'C:\\Python311\\Lib\\collections\\abc.py', reloading
+INFO:werkzeug: * Detected change in 'C:\\Python311\\Lib\\site-packages\\typing_extensions.py', reloading
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:20:01] "GET /login HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:20:13] "POST /login HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:20:33] "POST /login HTTP/1.1" 200 -
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:21:28] "POST /login HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:23:00] "POST /login HTTP/1.1" 200 -
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:24:31] "POST /login HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:25:33] "POST /login HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:25:49] "[32mPOST /login HTTP/1.1[0m" 302 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:25:49] "GET /dashboard HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:26:07] "GET /users HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:26:12] "GET /courses HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:26:29] "GET /errors HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:26:32] "GET /errors HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:26:32] "GET /logs HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:26:38] "GET /courses HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:26:39] "GET /users HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:26:40] "GET /dashboard HTTP/1.1" 200 -
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:29:23] "[32mGET /dashboard HTTP/1.1[0m" 302 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:29:23] "GET /login HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:29:30] "POST /login HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:29:50] "POST /login HTTP/1.1" 200 -
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\test\\add_to_db.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\test\\add_to_db.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\test\\add_to_db.py', reloading
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Detected change in 'D:\\LearnBetter\\V4\\LearnBetter\\admin.py', reloading
+INFO:werkzeug: * Restarting with watchdog (windowsapi)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 654-857-024
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:31:22] "[32mPOST /login HTTP/1.1[0m" 302 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:31:22] "GET /dashboard HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:31:36] "GET /courses HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:31:44] "[33mPOST /update_course_discount/ HTTP/1.1[0m" 404 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:32:03] "GET /dashboard HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:32:19] "GET /logs HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:32:20] "GET /errors HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [25/Jul/2024 15:32:22] "GET /users HTTP/1.1" 200 -

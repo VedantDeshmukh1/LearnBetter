@@ -5,11 +5,15 @@ import os
 import random
 import string
 import re
-from firebase_admin import credentials, firestore, initialize_app
+from firebase_admin import credentials, firestore, initialize_app, get_app
 
-# Initialize Firebase Admin SDK
-cred = credentials.Certificate("learnbetter-acad7-firebase-adminsdk-36uok-bc0c7e1ebd.json")
-initialize_app(cred)
+# Initialize Firebase Admin SDK only if it hasn't been initialized yet
+try:
+    app = get_app()
+except ValueError:
+    cred = credentials.Certificate("learnbetter-acad7-firebase-adminsdk-36uok-bc0c7e1ebd.json")
+    initialize_app(cred)
+
 db = firestore.client()
 
 # Sample data for course_details collection
@@ -141,23 +145,37 @@ teacher_details_data = [
     }
 ]
 
+# Sample data for admin_users collection
+admin_users_data = [
+    {
+        'admin_id': 'admin1_id',
+        'username': 'admin1',
+        'email': 'admin1@example.com',
+        'role': 'admin'
+    }
+]
+
 # Function to add sample data to Firestore
 def add_sample_data():
     # Add course_details
-    for course in course_details_data:
-        db.collection('course_details').document(course['course_id']).set(course)
+    # for course in course_details_data:
+    #     db.collection('course_details').document(course['course_id']).set(course)
 
-    # Add users
-    for user in users_data:
-        db.collection('users').document(user['user_id']).set(user)
+    # # Add users
+    # for user in users_data:
+    #     db.collection('users').document(user['user_id']).set(user)
 
-    # Add student_details
-    for student in student_details_data:
-        db.collection('student_details').document(student['student_id']).set(student)
+    # # Add student_details
+    # for student in student_details_data:
+    #     db.collection('student_details').document(student['student_id']).set(student)
 
-    # Add teacher_details
-    for teacher in teacher_details_data:
-        db.collection('teacher_details').document(teacher['teacher_id']).set(teacher)
+    # # Add teacher_details
+    # for teacher in teacher_details_data:
+    #     db.collection('teacher_details').document(teacher['teacher_id']).set(teacher)
+
+    # Add admin_users
+    for admin in admin_users_data:
+        db.collection('admin_users').document(admin['admin_id']).set(admin)
 
 # Call this function to add sample data
 add_sample_data()
