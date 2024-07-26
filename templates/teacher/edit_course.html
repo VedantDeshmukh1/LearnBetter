@@ -4,184 +4,85 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Course</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(to bottom right, #e6f2ff, #e6e6ff);
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        h1, h2, h3 {
-            color: #333;
-        }
-        .layout {
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
-        }
-        @media (min-width: 768px) {
-            .layout {
-                flex-direction: row;
-            }
-        }
-        .card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            flex: 1;
-        }
-        .card-header {
-            background: linear-gradient(to right, #3b82f6, #4f46e5);
-            color: white;
-            padding: 1rem;
-        }
-        .card-content {
-            padding: 1.5rem;
-        }
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: bold;
-        }
-        input[type="text"],
-        input[type="number"] {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-        .btn {
-            display: inline-block;
-            background-color: #3b82f6;
-            color: white;
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 1rem;
-            transition: background-color 0.3s;
-        }
-        .btn:hover {
-            background-color: #2563eb;
-        }
-        .btn-outline {
-            background-color: white;
-            color: #3b82f6;
-            border: 1px solid #3b82f6;
-        }
-        .btn-outline:hover {
-            background-color: #3b82f6;
-            color: white;
-        }
-        .btn-block {
-            display: block;
-            width: 100%;
-        }
-        .video-list {
-            list-style-type: none;
-            padding: 0;
-        }
-        .video-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem;
-            background-color: #f3f4f6;
-            border-radius: 4px;
-            margin-bottom: 0.5rem;
-            transition: background-color 0.3s, transform 0.3s;
-        }
-        .video-item:hover {
-            background-color: #e5e7eb;
-        }
-        .video-item.dragging {
-            opacity: 0.5;
-            transform: scale(1.05);
-        }
         .drag-handle {
             cursor: move;
-            padding: 0 10px;
-            color: #888;
-        }
-        .drag-handle:hover {
-            color: #333;
-        }
-        .video-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-        .video-seq {
-            font-weight: bold;
-            margin-right: 1rem;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 </head>
-<body>
-    <div class="container">
-        <h1>Edit Course</h1>
-        <div class="layout">
-            <div class="card">
-                <div class="card-header">
-                    <h2>Course Details</h2>
+<body class="bg-gray-100 min-h-screen">
+    <header class="bg-white shadow-md">
+        <nav class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <a href="{{ url_for('teacher.dashboard') }}" class="text-gray-800 hover:text-blue-600 mr-4">
+                        <i data-lucide="arrow-left" class="w-5 h-5 inline-block align-text-bottom"></i>
+                        Back to Dashboard
+                    </a>
+                    <div class="text-2xl font-bold text-blue-600">Magpie Learning</div>
                 </div>
-                <div class="card-content">
+                <div class="flex space-x-4 items-center">
+                    <a href="#" class="text-gray-800 hover:text-blue-600">Help</a>
+                    <a href="{{ url_for('teacher.logout') }}" class="text-gray-800 hover:text-blue-600">Logout</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">Edit Course</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-4 px-6">
+                    <h2 class="text-xl font-semibold">Course Details</h2>
+                </div>
+                <div class="p-6">
                     <form method="POST">
-                        <div class="form-group">
-                            <label for="course_name">Course Name:</label>
-                            <input type="text" id="course_name" name="course_name" value="{{ course.course_name }}" required>
+                        <div class="mb-4">
+                            <label for="course_name" class="block text-gray-700 font-bold mb-2">Course Name:</label>
+                            <input type="text" id="course_name" name="course_name" value="{{ course.course_name }}" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
-                        <div class="form-group">
-                            <label for="course_duration">Course Duration (hours):</label>
-                            <input type="number" id="course_duration" name="course_duration" value="{{ course.course_duration }}" required>
+                        <div class="mb-4">
+                            <label for="course_duration" class="block text-gray-700 font-bold mb-2">Course Duration (hours):</label>
+                            <input type="number" id="course_duration" name="course_duration" value="{{ course.course_duration }}" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
-                        <div class="form-group">
-                            <label for="course_price">Course Price (₹):</label>
-                            <input type="number" id="course_price" name="course_price" value="{{ course.course_price }}" step="0.01" required>
+                        <div class="mb-6">
+                            <label for="course_price" class="block text-gray-700 font-bold mb-2">Course Price (₹):</label>
+                            <input type="number" id="course_price" name="course_price" value="{{ course.course_price }}" step="0.01" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
-                        <button type="submit" class="btn btn-block">Update Course</button>
+                        <button type="submit" class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300">Update Course</button>
                     </form>
                 </div>
             </div>
-            <div class="card">
-                <div class="card-header">
-                    <h2>Course Videos</h2>
+            <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-4 px-6">
+                    <h2 class="text-xl font-semibold">Course Videos</h2>
                 </div>
-                <div class="card-content">
-                    <ul id="video-list" class="video-list">
+                <div class="p-6">
+                    <ul id="video-list" class="space-y-2">
                     {% for video_id, video in course.videos.items()|sort(attribute='1.video_seq') %}
-                        <li class="video-item" data-id="{{ video_id }}">
-                            <span class="drag-handle">☰</span>
-                            <span class="video-seq">{{ video.video_seq }}.</span>
-                            <span>{{ video.title }} ({{ video.duration }})</span>
-                            <div class="video-actions">
-                                <a href="{{ url_for('teacher.edit_video', course_id=course.id, video_id=video_id) }}" class="btn btn-outline">Edit</a>
-                                <form action="{{ url_for('teacher.delete_video', course_id=course.id, video_id=video_id) }}" method="POST" style="display: inline;">
-                                    <button type="submit" class="btn btn-outline" onclick="return confirm('Are you sure you want to delete this video?');">Delete</button>
+                        <li class="flex items-center justify-between bg-gray-100 p-3 rounded-md" data-id="{{ video_id }}">
+                            <div class="flex items-center">
+                                <span class="drag-handle text-gray-400 mr-2">☰</span>
+                                <span class="font-semibold mr-2">{{ video.video_seq }}.</span>
+                                <span>{{ video.title }} ({{ video.duration }})</span>
+                            </div>
+                            <div class="flex space-x-2">
+                                <a href="{{ url_for('teacher.edit_video', course_id=course.id, video_id=video_id) }}" class="text-blue-500 hover:text-blue-700">Edit</a>
+                                <form action="{{ url_for('teacher.delete_video', course_id=course.id, video_id=video_id) }}" method="POST" class="inline">
+                                    <button type="submit" class="text-red-500 hover:text-red-700" onclick="return confirm('Are you sure you want to delete this video?');">Delete</button>
                                 </form>
                             </div>
                         </li>
                     {% endfor %}
                     </ul>
-                    <button id="update-order" class="btn btn-block" style="margin-top: 1rem;">Update Video Order</button>
-                    <a href="{{ url_for('teacher.add_video', course_id=course.id) }}" class="btn btn-block" style="margin-top: 1rem;">Add New Video</a>
+                    <button id="update-order" class="w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition duration-300 mt-4">Update Video Order</button>
+                    <a href="{{ url_for('teacher.add_video', course_id=course.id) }}" class="block w-full bg-blue-500 text-white text-center py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300 mt-2">Add New Video</a>
                 </div>
             </div>
-        </div>
-        <div style="margin-top: 2rem; text-align: center;">
-            <a href="{{ url_for('teacher.dashboard') }}" class="btn btn-outline">Back to Dashboard</a>
         </div>
     </div>
 
@@ -192,16 +93,15 @@
             var sortable = new Sortable(videoList, {
                 animation: 150,
                 handle: '.drag-handle',
-                ghostClass: 'dragging',
                 onEnd: function(evt) {
                     updateVideoSeqDisplay();
                 }
             });
 
             function updateVideoSeqDisplay() {
-                var items = videoList.querySelectorAll('.video-item');
+                var items = videoList.querySelectorAll('li');
                 items.forEach(function(item, index) {
-                    var seqSpan = item.querySelector('.video-seq');
+                    var seqSpan = item.querySelector('.font-semibold');
                     seqSpan.textContent = (index + 1) + '.';
                 });
             }
@@ -241,6 +141,7 @@
                 });
             }
         });
+        lucide.createIcons();
     </script>
 </body>
 </html>
