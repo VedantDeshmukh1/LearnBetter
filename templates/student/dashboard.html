@@ -46,20 +46,13 @@
     <header class="bg-white shadow-md">
         <nav class="container mx-auto px-6 py-3">
             <div class="flex justify-between items-center">
-                <div class="text-2xl font-bold text-blue-600">Magpie Learning</div>
+                <a href="{{ url_for('student.home') }}" class="text-2xl font-bold text-blue-600">Magpie Learning</a>
                 <ul class="flex space-x-4">
                     <li><a href="{{ url_for('student.home') }}" class="text-gray-600 hover:text-blue-600">Home</a></li>
                     <li><a href="{{ url_for('student.my_courses') }}" class="text-gray-600 hover:text-blue-600">My Courses</a></li>
-                    <li><a href="{{ url_for('student.my_reviews') }}" class="text-gray-600 hover:text-blue-600">My Reviews</a></li>
                     <li><a href="#" class="text-blue-600 font-semibold">Dashboard</a></li>
                 </ul>
                 <div class="flex items-center space-x-4">
-                    <div class="relative">
-                        <i data-lucide="bell" class="text-gray-600"></i>
-                    </div>
-                    <div class="relative">
-                        <i data-lucide="message-circle" class="text-gray-600"></i>
-                    </div>
                     <div class="relative inline-block">
                         <i data-lucide="settings" class="text-gray-600 cursor-pointer" id="settingsDropdown"></i>
                         <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">

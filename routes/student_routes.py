@@ -227,19 +227,27 @@ def my_courses():
     user_id = session['user_id']
     student_ref = db.collection('student_details').document(user_id)
     student_doc = student_ref.get()
-
+    
     if student_doc.exists:
-        purchased_course_ids = student_doc.to_dict().get('purchased_courses', [])
+        student_data = student_doc.to_dict()
+        purchased_course_ids = student_data.get('purchased_courses', [])
+        progress_data = student_data.get('progress', {})
+        
         courses = []
         for course_id in purchased_course_ids:
             course_doc = db.collection('course_details').document(course_id).get()
             if course_doc.exists:
                 course = course_doc.to_dict()
                 course['id'] = course_doc.id
+                course['progress'] = progress_data.get(course_id, {}).get('overall_progress', 0)
+                
+                # Get the thumbnail of the first video by sequence
+                sorted_videos = sorted(course['videos'].values(), key=lambda x: x['video_seq'])
+                first_video = sorted_videos[0] if sorted_videos else None
+                course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
+                
                 courses.append(course)
-    else:
-        courses = []
-
+    
     return render_template('student/my_courses.html', courses=courses)
 
 @bp.route('/course/<course_id>')
@@ -374,41 +382,45 @@ def video_player(course_id, vid_seq=None):
     if vid_seq is not None:
         current_video = next((v for v in videos if v['video_seq'] == vid_seq), None)
     else:
-        # Find the last completed video or the first video if none completed
+        # Find the last completed video and move to the next uncompleted one, or the first video if none completed
         completed_videos = [v for v in videos if v['completed']]
-        current_video = completed_videos[-1] if completed_videos else videos[0]
+        if completed_videos:
+            last_completed = max(completed_videos, key=lambda x: x['video_seq'])
+            next_video = next((v for v in videos if v['video_seq'] > last_completed['video_seq'] and not v['completed']), None)
+            current_video = next_video if next_video else videos[0]
+        else:
+            current_video = videos[0]
 
     return render_template('student/video_player.html', course=course, videos=videos, progress_data=progress_data, overall_progress=overall_progress, current_video=current_video)
 
-@bp.route('/my_reviews')
-@student_required
-def my_reviews():
-    user_id = session['user_id']
-    student_ref = db.collection('student_details').document(user_id)
-    student_doc = student_ref.get()
-
-    if student_doc.exists:
-        purchased_course_ids = student_doc.to_dict().get('purchased_courses', [])
-        reviews = []
-        for course_id in purchased_course_ids:
-            course_doc = db.collection('course_details').document(course_id).get()
-            if course_doc.exists:
-                course = course_doc.to_dict()
-                course['id'] = course_doc.id
-                reviews.append({
-                    'course_id': course['id'],
-                    'course_title': course['course_name'],
-                    'rating': 4.5  # Replace with actual rating
-                })
-    else:
-        reviews = []
-
-    return render_template('student/my_reviews.html', reviews=reviews)
-
-@bp.route('/profile')
+@bp.route('/profile', methods=['GET', 'POST'])
 @student_required
 def profile():
-    return render_template('student/profile.html', user=session['user'])
+    user_id = session['user_id']
+    user_ref = db.collection('student_details').document(user_id)
+    user_doc = user_ref.get()
+
+    if request.method == 'POST':
+        # Update user information
+        name = request.form['name']
+        
+        user_ref.update({
+            'name': name
+        })
+        
+        flash('Profile updated successfully', 'success')
+        return redirect(url_for('student.profile'))
+
+    if user_doc.exists:
+        user_data = user_doc.to_dict()
+        # Split the name into first and last name for display purposes
+        name_parts = user_data['name'].split(' ', 1)
+        user_data['first_name'] = name_parts[0]
+        user_data['last_name'] = name_parts[1] if len(name_parts) > 1 else ''
+        return render_template('student/profile.html', user=user_data)
+    else:
+        flash('User not found', 'error')
+        return redirect(url_for('student.home'))
 
 @bp.route('/logout')
 def logout():
