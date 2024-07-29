@@ -15,33 +15,6 @@ import json
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
-def refresh_access_token():
-    # Load the current credentials
-    with open('credentials.json', 'r') as file:
-        cred_data = json.load(file)
-
-    # Create a Credentials object
-    creds = Credentials(
-        token=cred_data['access_token'],
-        refresh_token=cred_data['refresh_token'],
-        token_uri="https://oauth2.googleapis.com/token",
-        client_id=cred_data.get('client_id'),  # Add these if you have them
-        client_secret=cred_data.get('client_secret'),  # Add these if you have them
-        scopes=[cred_data['scope']]
-    )
-
-    # Refresh the token
-    if creds.expired:
-        creds.refresh(Request())
-
-    # Update the credentials file with the new access token
-    cred_data['access_token'] = creds.token
-    with open('credentials.json', 'w') as file:
-        json.dump(cred_data, file, indent=2)
-
-    print("Access token refreshed and updated in credentials.json")
-
-
 def generate_username(first_name, last_name, email):
     username = first_name[:2] + last_name[:2] + str(len(email)) + str(random.randint(100, 999))
     return username
@@ -86,15 +59,15 @@ our_email = 'learnbetter310@gmail.com'
 
 def gmail_authenticate():
     creds = None
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+    if os.path.exists("credentials/token.json"):
+        creds = Credentials.from_authorized_user_file("credentials/token.json", SCOPES)
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials_email.json', SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file('credentials/credentials_email.json', SCOPES)
             creds = flow.run_local_server(port=0)
-        with open("token.json", "w") as token:
+        with open("credentials/token.json", "w") as token:
             token.write(creds.to_json())
     return build('gmail', 'v1', credentials=creds)
 
@@ -118,7 +91,7 @@ def get_drive_service():
     gauth = GoogleAuth()
     
     # Try to load saved client credentials
-    creds_file = "mycreds.txt"
+    creds_file = "credentials/mycreds.txt"
     if os.path.exists(creds_file):
         gauth.LoadCredentialsFile(creds_file)
     

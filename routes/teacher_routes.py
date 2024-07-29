@@ -1,13 +1,12 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session,jsonify
 from firebase_admin import firestore
 from config import db, rdb, auth
-from utils import generate_video_id, validate_name ,generate_password,generate_username,send_email
+from utils import generate_video_id, validate_name ,generate_password,generate_username,send_email,validate_email
 from werkzeug.utils import secure_filename
 import os
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-from utils import refresh_access_token
 import json
 from moviepy.editor import VideoFileClip
 from PIL import Image
@@ -152,6 +151,33 @@ def register():
             print(f"Registration error: {str(e)}")  # Debug print
             flash('Registration failed', 'error')
     return render_template('teacher/register.html')
+
+@bp.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form['email']
+        if not validate_email(email):
+            flash('Invalid email format', 'error')
+            return render_template('teacher/forgot_password.html')
+        
+        users = rdb.child("users").get()
+        user_data = None
+        for user in users.each():
+            if user.val()['email'] == email:
+                user_data = user.val()
+                break
+        
+        if user_data:
+            subject = "Your Magpie Learning Account Information"
+            body = f"Your username is: {user_data['username']}\nYour password is: {user_data['password']}"
+            if send_email(email, subject, body):
+                flash('Your login credentials have been sent to your email', 'success')
+                return redirect(url_for('student.login'))
+            else:
+                flash('An error occurred while sending the email. Please try again later.', 'error')
+        else:
+            flash('Email not found. Please enter the correct email or register.', 'error')
+    return render_template('teacher/forgot_password.html')
 
 @bp.route('/profile', methods=['GET', 'POST'])
 @teacher_required

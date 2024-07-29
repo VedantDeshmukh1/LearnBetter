@@ -72,6 +72,12 @@
             <div class="text-center">
                 <p>Don't have an account? <a href="{{ url_for('teacher.register') }}" class="font-medium text-blue-600 hover:text-blue-500">Register here</a></p>
             </div>
+            <!-- Add this right after the form closing tag -->
+            <div class="text-center mt-4">
+                <a href="{{ url_for('teacher.forgot_password') }}" class="font-medium text-blue-600 hover:text-blue-500">
+                    Forgot your password?
+                </a>
+            </div>
         </div>
     </main>
 

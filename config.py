@@ -22,7 +22,7 @@ rdb = firebase.database()
 
 
 # Initialize Firebase Admin SDK
-cred = credentials.Certificate("learnbetter-acad7-firebase-adminsdk-36uok-bc0c7e1ebd.json")
+cred = credentials.Certificate("credentials/learnbetter-acad7-firebase-adminsdk-36uok-bc0c7e1ebd.json")
 firebase_admin.initialize_app(cred)
 
 db = firestore.client()
