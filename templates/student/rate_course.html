@@ -1,29 +1,177 @@
-{% extends "student/base_student.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rate Course - Magpie Learning</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .star-rating {
+            display: inline-block;
+            font-size: 0;
+            position: relative;
+            text-indent: -9999px;
+            width: 250px;
+        }
+        .star-rating label {
+            background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLXN0YXIiPjxwb2x5Z29uIHBvaW50cz0iMTIgMiAxNS4wOSA4LjI2IDIyIDkuMjcgMTcgMTQuMTQgMTguMTggMjEuMDIgMTIgMTcuNzcgNS44MiAyMS4wMiA3IDE0LjE0IDIgOS4yNyA4LjkxIDguMjYgMTIgMiIvPjwvc3ZnPg==') no-repeat;
+            background-size: contain;
+            cursor: pointer;
+            display: inline-block;
+            height: 50px;
+            float: right;
+            width: 50px;
+        }
+        .star-rating input:checked ~ label,
+        .star-rating label:hover,
+        .star-rating label:hover ~ label {
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjZmZkNzAwIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLXN0YXIiPjxwb2x5Z29uIHBvaW50cz0iMTIgMiAxNS4wOSA4LjI2IDIyIDkuMjcgMTcgMTQuMTQgMTguMTggMjEuMDIgMTIgMTcuNzcgNS44MiAyMS4wMiA3IDE0LjE0IDIgOS4yNyA4LjkxIDguMjYgMTIgMiIvPjwvc3ZnPg==');
+        }
+        .star-rating input {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <header class="bg-white shadow-md">
+        <nav class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <a href="{{ url_for('student.home') }}" class="text-2xl font-bold text-blue-600">Magpie Learning</a>
+                <div class="flex items-center space-x-4">
+                    <ul class="flex space-x-4">
+                        <li><a href="{{ url_for('student.home') }}" class="text-gray-600 hover:text-blue-600">Home</a></li>
+                        <li><a href="{{ url_for('student.my_courses') }}" class="text-gray-600 hover:text-blue-600">My Courses</a></li>
+                        <li><a href="{{ url_for('student.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
+                    </ul>
+                    <div class="relative inline-block">
+                        {% if 'user' in session %}
+                            <a href="#" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center" id="userDropdown">
+                                {{ session['user']['first_name'][0] }}
+                            </a>
+                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
+                                <a href="{{ url_for('student.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                <a href="{{ url_for('student.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                            </div>
+                        {% else %}
+                            <a href="{{ url_for('student.login') }}" class="text-blue-600 hover:text-blue-800">Login</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
 
-{% block content %}
-<h1>Rate Course</h1>
-<form method="POST">
-    {% for category in ['content_quality', 'instructor_expertise', 'course_structure', 'production_quality', 'practical_examples', 'interactivity', 'pace_difficulty', 'value_for_money'] %}
-    <div class="rating-category">
-        <label for="{{ category }}">{{ category|replace('_', ' ')|title }}:</label>
-        <input type="range" id="{{ category }}" name="{{ category }}" min="1" max="5" value="3" step="1" oninput="this.nextElementSibling.value = this.value">
-        <output>3</output>
+    <main class="container mx-auto px-6 py-8 flex-grow">
+        <h1 class="text-3xl font-bold mb-8">Rate Course: {{ course.course_name }}</h1>
+        <form action="{{ url_for('student.rate_course', course_id=course.id) }}" method="POST" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="rating">
+                    Rating
+                </label>
+                <div class="star-rating">
+                    <input type="radio" id="star5" name="rating" value="5" required><label for="star5">5 stars</label>
+                    <input type="radio" id="star4" name="rating" value="4"><label for="star4">4 stars</label>
+                    <input type="radio" id="star3" name="rating" value="3"><label for="star3">3 stars</label>
+                    <input type="radio" id="star2" name="rating" value="2"><label for="star2">2 stars</label>
+                    <input type="radio" id="star1" name="rating" value="1"><label for="star1">1 star</label>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="review">
+                    Review
+                </label>
+                <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="review" name="review" rows="4" required></textarea>
+            </div>
+            <div class="flex items-center justify-between">
+                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">
+                    Submit Rating
+                </button>
+            </div>
+        </form>
+    </main>
+
+    <div id="ratingPopup" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Thank You!</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">Your rating has been submitted successfully.</p>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="closePopup" class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-    {% endfor %}
-    
-    <label for="review">Review:</label>
-    <textarea id="review" name="review" rows="4" cols="50" required></textarea>
-    
-    <button type="submit">Submit Rating</button>
-</form>
-{% endblock %}
 
-{% block scripts %}
-<script>
-    document.querySelectorAll('input[type="range"]').forEach(function(slider) {
-        slider.addEventListener('input', function() {
-            this.nextElementSibling.value = this.value;
+    <script>
+        lucide.createIcons();
+
+        const userDropdown = document.getElementById('userDropdown');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+
+        userDropdown.addEventListener('click', function(event) {
+            event.stopPropagation();
+            dropdownMenu.classList.toggle('hidden');
         });
-    });
-</script>
-{% endblock %}
+
+        document.addEventListener('click', function(event) {
+            if (!userDropdown.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
+
+        const form = document.querySelector('form');
+        const ratingPopup = document.getElementById('ratingPopup');
+        const closePopup = document.getElementById('closePopup');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(form);
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    ratingPopup.classList.remove('hidden');
+                    celebrateRating(); // Trigger confetti animation
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        closePopup.addEventListener('click', function() {
+            ratingPopup.classList.add('hidden');
+            window.location.href = "{{ url_for('student.dashboard') }}";
+        });
+    </script>
+
+    <!-- Add confetti animation -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script>
+        function celebrateRating() {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
+    </script>
+</body>
+</html>

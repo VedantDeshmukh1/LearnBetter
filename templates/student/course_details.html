@@ -133,17 +133,27 @@
         <nav class="container mx-auto px-6 py-3">
             <div class="flex justify-between items-center">
                 <a href="{{ url_for('student.home') }}" class="text-2xl font-bold text-blue-600">Magpie Learning</a>
-                <div class="flex space-x-4 items-center">
-                    <a href="{{ url_for('student.home') }}" class="text-gray-800 hover:text-blue-600">Explore</a>
-                    {% if 'user' in session %}
-                        <a href="{{ url_for('student.my_courses') }}" class="text-gray-800 hover:text-blue-600">My Learning</a>
-                        <a href="{{ url_for('student.dashboard') }}" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center">
-                            {{ session['user']['first_name'][0] }}
-                        </a>
-                    {% else %}
-                        <a href="{{ url_for('student.login') }}" class="text-gray-800 hover:text-blue-600">Login</a>
-                        <a href="{{ url_for('teacher.login') }}" class="text-gray-800 hover:text-blue-600">Teacher Login</a>
-                    {% endif %}
+                <div class="flex items-center space-x-4">
+                    <ul class="flex space-x-4">
+                        <li><a href="{{ url_for('student.home') }}" class="text-gray-600 hover:text-blue-600">Home</a></li>
+                        {% if 'user' in session %}
+                        <li><a href="{{ url_for('student.my_courses') }}" class="text-gray-600 hover:text-blue-600">My Courses</a></li>
+                        <li><a href="{{ url_for('student.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
+                        {% endif %}
+                    </ul>
+                    <div class="relative inline-block">
+                        {% if 'user' in session %}
+                            <a href="#" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center" id="userDropdown">
+                                {{ session['user']['first_name'][0] }}
+                            </a>
+                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
+                                <a href="{{ url_for('student.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                <a href="{{ url_for('student.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                            </div>
+                        {% else %}
+                            <a href="{{ url_for('student.login') }}" class="text-blue-600 hover:text-blue-800">Login</a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </nav>
@@ -170,7 +180,7 @@
                         <i data-lucide="clock" class="mr-2"></i>
                         <span class="text-gray-700">Duration: {{ course.course_duration }} hours</span>
                     </div>
-                    {% if course.average_rating %}
+                    {% if course.average_rating > 0 and course.total_ratings > 0 %}
                         <div class="flex items-center mb-4">
                             <i data-lucide="star" class="mr-2 text-yellow-400"></i>
                             <span class="text-gray-700">Rating: {{ course.average_rating|round(1) }} ({{ course.total_ratings }} reviews)</span>
@@ -179,6 +189,17 @@
                     {% if 'user' in session %}
                         {% if course.id in student_details.purchased_courses %}
                             <a href="{{ url_for('student.video_player', course_id=course.id) }}" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Go to Course</a>
+                            {% if student_details.progress.get(course.id, {}).get('overall_progress', 0) == 100 %}
+                                {% if not user_rating %}
+                                    <a href="{{ url_for('student.rate_course', course_id=course.id) }}" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 ml-2">Rate Course</a>
+                                {% else %}
+                                    <span class="text-yellow-500 ml-2">
+                                        Your Rating:
+                                        {% for _ in range(user_rating|int) %}★{% endfor %}
+                                        {% for _ in range(5 - user_rating|int) %}☆{% endfor %}
+                                    </span>
+                                {% endif %}
+                            {% endif %}
                         {% else %}
                             <form action="{{ url_for('student.purchase_course', course_id=course.id) }}" method="POST">
                                 <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Purchase Course (₹{{ course.course_price }})</button>
@@ -237,13 +258,12 @@
             </button>
         </div>
 
+        <h2 class="text-2xl font-bold mb-4">Reviews</h2>
         {% if course.reviews %}
-        <h2 class="text-2xl font-bold mb-4">Student Reviews</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             {% for review in course.reviews %}
-                <div class="course-card p-4">
+                <div class="mb-4 bg-white rounded-lg shadow p-4">
                     <div class="flex items-center mb-2">
-                        <div class="w-10 h-10 bg-blue-600 rounded-full text-white flex items-center justify-center mr-3">
+                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
                             {{ review.student_name[0] }}
                         </div>
                         <div>
@@ -258,10 +278,13 @@
                             </div>
                         </div>
                     </div>
-                    <p class="text-gray-600">{{ review.comment }}</p>
+                    {% if review.comment %}
+                        <p class="text-gray-600">{{ review.comment }}</p>
+                    {% endif %}
                 </div>
             {% endfor %}
-        </div>
+        {% else %}
+            <p class="text-gray-600">No reviews yet.</p>
         {% endif %}
 
         <h2 class="text-2xl font-bold mb-6">People Also Purchased</h2>
@@ -274,10 +297,11 @@
                         <div class="p-4">
                             <h3 class="font-semibold text-lg mb-1">{{ related_course.course_name }}</h3>
                             <a href="{{ url_for('teacher.public_profile', teacher_id=related_course.course_instructor_id) }}" class="text-sm text-blue-600 hover:underline">{{ related_course.course_instructor }}</a>
-                            {% if related_course.average_rating and related_course.total_ratings > 0 %}
+                            {% if related_course.average_rating > 0 and related_course.total_ratings > 0 %}
                                 <p class="text-sm text-gray-600">Rating: {{ related_course.average_rating|round(1) }}★ ({{ related_course.total_ratings }} reviews)</p>
                             {% endif %}
                             <p class="text-sm text-gray-600">Duration: {{ related_course.course_duration }} hours</p>
+                            <p class="text-sm text-gray-600">Enrollments: {{ related_course.total_enrollments }}</p>
                             <p class="text-sm font-bold mt-2">₹{{ related_course.course_price }}</p>
                         </div>
                     </a>
@@ -413,6 +437,22 @@
                 scrollRightBtn.classList.toggle('hidden', relatedCoursesContainer.scrollLeft + relatedCoursesContainer.clientWidth >= relatedCoursesContainer.scrollWidth);
             }
         }
+
+        lucide.createIcons();
+
+        const userDropdown = document.getElementById('userDropdown');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+
+        userDropdown.addEventListener('click', function(event) {
+            event.stopPropagation();
+            dropdownMenu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!userDropdown.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
 
         function scrollRelatedCourses(direction) {
             if (relatedCoursesContainer) {

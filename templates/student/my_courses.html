@@ -27,18 +27,20 @@
         <nav class="container mx-auto px-6 py-3">
             <div class="flex justify-between items-center">
                 <a href="{{ url_for('student.home') }}" class="text-2xl font-bold text-blue-600">Magpie Learning</a>
-                <ul class="flex space-x-4">
-                    <li><a href="{{ url_for('student.home') }}" class="text-gray-600 hover:text-blue-600">Home</a></li>
-                    <li><a href="#" class="text-blue-600 font-semibold">My Courses</a></li>
-                    <li><a href="{{ url_for('student.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
-                </ul>
-                <div class="relative inline-block">
-                    <a href="#" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center" id="userDropdown">
-                        {{ session['user']['first_name'][0] }}
-                    </a>
-                    <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
-                        <a href="{{ url_for('student.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
-                        <a href="{{ url_for('student.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                <div class="flex items-center space-x-4">
+                    <ul class="flex space-x-4">
+                        <li><a href="{{ url_for('student.home') }}" class="text-gray-600 hover:text-blue-600">Home</a></li>
+                        <li><a href="#" class="text-blue-600 font-semibold">My Courses</a></li>
+                        <li><a href="{{ url_for('student.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
+                    </ul>
+                    <div class="relative inline-block">
+                        <a href="#" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center" id="userDropdown">
+                            {{ session['user']['first_name'][0] }}
+                        </a>
+                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
+                            <a href="{{ url_for('student.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                            <a href="{{ url_for('student.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -52,16 +54,20 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {% for course in courses %}
                 <div class="course-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200">
-                    <img src="{{ course.thumbnail }}" alt="{{ course.course_name }}" class="w-full h-40 object-cover">
-                    <div class="p-4">
-                        <h2 class="font-semibold text-lg mb-2">{{ course.course_name }}</h2>
-                        <p class="text-sm text-gray-600 mb-2">Instructor: {{ course.course_instructor }}</p>
-                        <div class="mb-2">
-                            <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ course.progress }}%"></div>
+                    <a href="{{ url_for('student.course_details', course_id=course.id) }}" class="block">
+                        <img src="{{ course.thumbnail }}" alt="{{ course.course_name }}" class="w-full h-40 object-cover">
+                        <div class="p-4">
+                            <h2 class="font-semibold text-lg mb-2">{{ course.course_name }}</h2>
+                            <p class="text-sm text-gray-600 mb-2">Instructor: {{ course.course_instructor }}</p>
+                            <div class="mb-2">
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ course.progress }}%"></div>
+                                </div>
+                                <span class="text-sm text-gray-600">Progress: {{ "%.2f"|format(course.progress) }}%</span>
                             </div>
-                            <span class="text-sm text-gray-600">Progress: {{ "%.2f"|format(course.progress) }}%</span>
                         </div>
+                    </a>
+                    <div class="px-4 pb-4">
                         <a href="{{ url_for('student.video_player', course_id=course.id) }}" class="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300">Continue Learning</a>
                     </div>
                 </div>

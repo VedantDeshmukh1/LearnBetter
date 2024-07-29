@@ -265,25 +265,23 @@ def course_details(course_id):
         first_video = next((v for v in sorted_videos if v['video_seq'] == 1), None)
         course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
         
-        # Calculate average rating and total ratings
-        ratings = course.get('ratings', {})
-        if ratings:
-            course['average_rating'] = sum(r['rating'] for r in ratings.values()) / len(ratings)
-            course['total_ratings'] = len(ratings)
-        else:
-            course['average_rating'] = None
-            course['total_ratings'] = 0
+        # Use the existing average_rating and total_ratings fields
+        course['average_rating'] = course.get('average_rating', 0)
+        course['total_ratings'] = course.get('total_ratings', 0)
+        
+        # Get total enrollments
+        course['total_enrollments'] = course.get('total_enrollments', 0)
         
         # Get reviews
         course['reviews'] = []
-        for student_id, rating_data in ratings.items():
-            if 'review' in rating_data:
+        for student_id, rating_data in course.get('ratings', {}).items():
+            if isinstance(rating_data, dict) and 'rating' in rating_data:
                 student_doc = db.collection('student_details').document(student_id).get()
                 student_name = student_doc.to_dict()['name'] if student_doc.exists else 'Anonymous'
                 course['reviews'].append({
                     'student_name': student_name,
                     'rating': rating_data['rating'],
-                    'comment': rating_data['review']
+                    'comment': rating_data.get('review', '')  # Use 'review' instead of 'comment'
                 })
         
         # Get related courses (people also purchased)
@@ -298,17 +296,17 @@ def course_details(course_id):
                 related_course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
                 related_courses.append(related_course)
         
-        if 'user' in session:
+        student_details = None
+        user_rating = None
+        if 'user' in session and session['user'].get('role') == 'student':
             user_id = session['user_id']
-            student_doc = db.collection('student_details').document(user_id).get()
+            student_ref = db.collection('student_details').document(user_id)
+            student_doc = student_ref.get()
             if student_doc.exists:
                 student_details = student_doc.to_dict()
-            else:
-                student_details = None
-        else:
-            student_details = None
-        
-        return render_template('student/course_details.html', course=course, student_details=student_details, related_courses=related_courses)
+                user_rating = student_details.get('ratings', {}).get(course_id, {}).get('rating')
+
+        return render_template('student/course_details.html', course=course, student_details=student_details, related_courses=related_courses, user_rating=user_rating)
     else:
         flash('Course not found', 'error')
         return redirect(url_for('student.home'))
@@ -374,24 +372,33 @@ def video_player(course_id, vid_seq=None):
         videos.append(video_data)
 
     # Sort videos by sequence
-    videos.sort(key=lambda x: x['video_seq'])
+    sorted_videos = sorted(videos, key=lambda x: x['video_seq'])
 
     overall_progress = progress_data.get('overall_progress', 0)
 
     # Determine which video to play
     if vid_seq is not None:
-        current_video = next((v for v in videos if v['video_seq'] == vid_seq), None)
+        current_video = next((v for v in sorted_videos if v['video_seq'] == vid_seq), None)
     else:
         # Find the last completed video and move to the next uncompleted one, or the first video if none completed
-        completed_videos = [v for v in videos if v['completed']]
+        completed_videos = [v for v in sorted_videos if v['completed']]
         if completed_videos:
             last_completed = max(completed_videos, key=lambda x: x['video_seq'])
-            next_video = next((v for v in videos if v['video_seq'] > last_completed['video_seq'] and not v['completed']), None)
-            current_video = next_video if next_video else videos[0]
+            next_video = next((v for v in sorted_videos if v['video_seq'] > last_completed['video_seq'] and not v['completed']), None)
+            current_video = next_video if next_video else sorted_videos[0]
         else:
-            current_video = videos[0]
+            current_video = sorted_videos[0]
 
-    return render_template('student/video_player.html', course=course, videos=videos, progress_data=progress_data, overall_progress=overall_progress, current_video=current_video)
+    # Check if the user has already rated this course
+    user_rating = student.get('ratings', {}).get(course_id)
+    has_rated = user_rating is not None
+
+    return render_template('student/video_player.html', 
+                           course=course, 
+                           videos=sorted_videos, 
+                           current_video=current_video, 
+                           overall_progress=overall_progress,
+                           has_rated=has_rated)
 
 @bp.route('/profile', methods=['GET', 'POST'])
 @student_required
@@ -610,44 +617,59 @@ def get_video_progress(video_id):
 @bp.route('/rate_course/<course_id>', methods=['GET', 'POST'])
 @student_required
 def rate_course(course_id):
-    user_id = session['user_id']
-    
+    course_doc = db.collection('course_details').document(course_id).get()
+    if not course_doc.exists:
+        flash('Course not found', 'error')
+        return redirect(url_for('student.dashboard'))
+
+    course = course_doc.to_dict()
+    course['id'] = course_doc.id
+
     if request.method == 'POST':
-        ratings = {
-            'content_quality': int(request.form['content_quality']),
-            'instructor_expertise': int(request.form['instructor_expertise']),
-            'course_structure': int(request.form['course_structure']),
-            'production_quality': int(request.form['production_quality']),
-            'practical_examples': int(request.form['practical_examples']),
-            'interactivity': int(request.form['interactivity']),
-            'pace_difficulty': int(request.form['pace_difficulty']),
-            'value_for_money': int(request.form['value_for_money'])
-        }
+        rating = int(request.form['rating'])
         review = request.form['review']
-        
-        # Calculate average rating
-        average_rating = sum(ratings.values()) / len(ratings)
-        
+
+        user_id = session['user_id']
+        student_ref = db.collection('student_details').document(user_id)
+
+        # Update the student's ratings
+        student_ref.update({
+            f'ratings.{course_id}': {
+                'rating': rating,
+                'review': review,
+                'timestamp': firestore.SERVER_TIMESTAMP
+            }
+        })
+
+        # Update the course's ratings
         course_ref = db.collection('course_details').document(course_id)
         course_data = course_ref.get().to_dict()
         
-        update_course_ratings(course_ref, average_rating)
+        # Update or add the new rating
+        if 'ratings' not in course_data:
+            course_data['ratings'] = {}
+        course_data['ratings'][user_id] = {
+            'rating': rating,
+            'review': review,
+            'timestamp': firestore.SERVER_TIMESTAMP
+        }
         
+        # Recalculate average rating and total ratings
+        total_ratings = len(course_data['ratings'])
+        average_rating = sum(r['rating'] for r in course_data['ratings'].values()) / total_ratings
+
         course_ref.update({
-            f'ratings.{user_id}': {
-                'rating': average_rating,
-                'detailed_ratings': ratings,
-                'review': review,
-                'date': firestore.SERVER_TIMESTAMP
-            }
+            'ratings': course_data['ratings'],
+            'average_rating': average_rating,
+            'total_ratings': total_ratings
         })
-        
-        add_student_activity(user_id, 'rating', f"Rated course: {course_data['course_name']}")
-        
-        flash('Thank you for rating the course!', 'success')
-        return redirect(url_for('student.my_courses'))
-    
-    return render_template('student/rate_course.html', course_id=course_id)
+
+        # Add rating activity to recent activities
+        add_student_activity(user_id, 'rating', f"Rated course: {course['course_name']} with {rating} stars")
+
+        return jsonify({'success': True, 'message': 'Thank you for rating the course!'})
+
+    return render_template('student/rate_course.html', course=course)
 
 # Add this function outside of any route
 def calculate_average_rating(user_id):
@@ -668,6 +690,25 @@ def time_to_seconds(time_str):
     """Convert time string (HH:MM:SS) to seconds."""
     h, m, s = time_str.split(':')
     return int(h) * 3600 + int(m) * 60 + int(s)
+
+def add_student_activity(user_id, activity_type, description):
+    student_ref = db.collection('student_details').document(user_id)
+    student_doc = student_ref.get()
+    
+    if student_doc.exists:
+        student_data = student_doc.to_dict()
+        activities = student_data.get('recent_activities', [])
+        
+        new_activity = {
+            'type': activity_type,
+            'description': description,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        activities.insert(0, new_activity)
+        activities = activities[:5]  # Keep only the 5 most recent activities
+        
+        student_ref.update({'recent_activities': activities})
 
 @bp.route('/dashboard')
 @student_required
@@ -746,6 +787,11 @@ def dashboard():
                 course = course_doc.to_dict()
                 course['id'] = course_doc.id
                 course['progress'] = progress_data.get(course_id, {}).get('overall_progress', 0)
+                
+                # Get user's rating for this course
+                user_rating = student_data.get('ratings', {}).get(course_id, {}).get('rating')
+                course['user_rating'] = user_rating
+
                 courses.append(course)
 
         return render_template('student/dashboard.html', 

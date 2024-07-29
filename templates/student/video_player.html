@@ -41,12 +41,21 @@
         <nav class="container mx-auto px-6 py-3">
             <div class="flex justify-between items-center">
                 <a href="{{ url_for('student.home') }}" class="text-2xl font-bold text-blue-600">Magpie Learning</a>
-                <div class="flex space-x-4 items-center">
-                    <a href="{{ url_for('student.home') }}" class="text-gray-800 hover:text-blue-600">Explore</a>
-                    <a href="{{ url_for('student.my_courses') }}" class="text-gray-800 hover:text-blue-600">My Learning</a>
-                    <a href="{{ url_for('student.dashboard') }}" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center">
-                        {{ session['user']['first_name'][0] }}
-                    </a>
+                <div class="flex items-center space-x-4">
+                    <ul class="flex space-x-4">
+                        <li><a href="{{ url_for('student.home') }}" class="text-gray-600 hover:text-blue-600">Home</a></li>
+                        <li><a href="{{ url_for('student.my_courses') }}" class="text-gray-600 hover:text-blue-600">My Courses</a></li>
+                        <li><a href="{{ url_for('student.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
+                    </ul>
+                    <div class="relative inline-block">
+                        <a href="#" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center" id="userDropdown">
+                            {{ session['user']['first_name'][0] }}
+                        </a>
+                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
+                            <a href="{{ url_for('student.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                            <a href="{{ url_for('student.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -148,6 +157,35 @@
                 <button id="stay-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">Stay on this video</button>
                 <button id="mark-complete-switch-btn" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Mark as complete & switch</button>
                 <button id="switch-btn" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Switch without marking</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add this modal at the end of the body, before the closing </body> tag -->
+    <div id="course-completion-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Congratulations!</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">
+                        You've completed the course!
+                    </p>
+                </div>
+                <div class="items-center px-4 py-3">
+                    {% if not has_rated %}
+                    <a href="{{ url_for('student.rate_course', course_id=course.id) }}" class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300 inline-block mb-2">
+                        Rate Course
+                    </a>
+                    {% endif %}
+                    <button id="close-modal" class="px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        Close
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -270,6 +308,9 @@
         function updateProgress() {
             const newProgress = calculateOverallProgress();
             updateProgressDisplay(newProgress);
+            if (newProgress === 100) {
+                showCourseCompletionModal();
+            }
         }
 
         function updateProgressDisplay(progress) {
@@ -309,6 +350,16 @@
             document.getElementById('completion-modal').classList.remove('flex');
         }
 
+        function showCourseCompletionModal() {
+            if (!hasRated) {
+                document.getElementById('course-completion-modal').classList.remove('hidden');
+                celebrateCourseCompletion();
+            } else {
+                // If the user has already rated, just show a simple completion message
+                alert('Congratulations! You have completed the course.');
+            }
+        }
+
         videoList.addEventListener('click', (event) => {
             const videoItem = event.target.closest('.video-item');
             if (videoItem) {
@@ -341,6 +392,10 @@
             if (switchingToVideoId && switchingToVideoUrl) {
                 updateVideoSrc(switchingToVideoId, switchingToVideoUrl);
             }
+        });
+
+        document.getElementById('close-modal').addEventListener('click', function() {
+            document.getElementById('course-completion-modal').classList.add('hidden');
         });
 
         markCompleteBtn.addEventListener('click', () => {
@@ -397,6 +452,31 @@
                 // Optionally, you can show a message to the user or redirect them to a course completion page
             }
         }
+
+        const userDropdown = document.getElementById('userDropdown');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+
+        userDropdown.addEventListener('click', function(event) {
+            event.stopPropagation();
+            dropdownMenu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!userDropdown.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
+
+        function celebrateCourseCompletion() {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
     </script>
+
+    <!-- Add this script just before the closing </body> tag -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 </body>
 </html>

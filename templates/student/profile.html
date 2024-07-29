@@ -20,18 +20,20 @@
         <nav class="container mx-auto px-6 py-3">
             <div class="flex justify-between items-center">
                 <a href="{{ url_for('student.home') }}" class="text-2xl font-bold text-blue-600">Magpie Learning</a>
-                <ul class="flex space-x-4">
-                    <li><a href="{{ url_for('student.home') }}" class="text-gray-600 hover:text-blue-600">Home</a></li>
-                    <li><a href="{{ url_for('student.my_courses') }}" class="text-gray-600 hover:text-blue-600">My Courses</a></li>
-                    <li><a href="{{ url_for('student.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
-                </ul>
-                <div class="relative inline-block">
-                    <a href="#" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center" id="userDropdown">
-                        {{ user['name'][0] }}
-                    </a>
-                    <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
-                        <a href="{{ url_for('student.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
-                        <a href="{{ url_for('student.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                <div class="flex items-center space-x-4">
+                    <ul class="flex space-x-4">
+                        <li><a href="{{ url_for('student.home') }}" class="text-gray-600 hover:text-blue-600">Home</a></li>
+                        <li><a href="{{ url_for('student.my_courses') }}" class="text-gray-600 hover:text-blue-600">My Courses</a></li>
+                        <li><a href="{{ url_for('student.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
+                    </ul>
+                    <div class="relative inline-block">
+                        <a href="#" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center" id="userDropdown">
+                            {{ user['name'][0] }}
+                        </a>
+                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
+                            <a href="{{ url_for('student.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                            <a href="{{ url_for('student.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                        </div>
                     </div>
                 </div>
             </div>
