@@ -249,7 +249,8 @@
                     .then(response => response.json())
                     .then(data => {
                         displayCourses(data);
-                    });
+                    })
+                    .catch(error => console.error('Error searching courses:', error));
             }, 300);
         });
 

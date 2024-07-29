@@ -312,7 +312,6 @@ def course_details(course_id):
         return redirect(url_for('student.home'))
 
 @bp.route('/search_courses')
-@student_required
 def search_courses():
     query = request.args.get('query', '').lower()
     courses = []
