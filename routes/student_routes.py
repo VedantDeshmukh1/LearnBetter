@@ -521,8 +521,7 @@ def purchase_course(course_id):
         'total_enrollments': firestore.Increment(1),
         'total_revenue': firestore.Increment(course['course_price']),
         f'enrollments.{user_id}': {
-            'enrollment_date': firestore.SERVER_TIMESTAMP,
-            'progress': 0
+            'enrollment_date': firestore.SERVER_TIMESTAMP
         }
     })
 

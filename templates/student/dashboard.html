@@ -152,8 +152,7 @@
                                 {% if course.progress == 100 %}
                                     {% if course.user_rating %}
                                         <span class="text-yellow-500">
-                                            {% for _ in range(course.user_rating|int) %}★{% endfor %}
-                                            {% for _ in range(5 - course.user_rating|int) %}☆{% endfor %}
+                                            {% for _ in range(course.user_rating|int) %}★{% endfor %}{% for _ in range(5 - course.user_rating|int) %}☆{% endfor %}
                                         </span>
                                     {% else %}
                                         <a href="{{ url_for('student.rate_course', course_id=course.id) }}" class="text-green-600 hover:underline">Rate</a>

@@ -195,8 +195,7 @@
                                 {% else %}
                                     <span class="text-yellow-500 ml-2">
                                         Your Rating:
-                                        {% for _ in range(user_rating|int) %}★{% endfor %}
-                                        {% for _ in range(5 - user_rating|int) %}☆{% endfor %}
+                                        {% for _ in range(user_rating|int) %}★{% endfor %}{% for _ in range(5 - user_rating|int) %}☆{% endfor %}
                                     </span>
                                 {% endif %}
                             {% endif %}
@@ -258,34 +257,38 @@
             </button>
         </div>
 
-        <h2 class="text-2xl font-bold mb-4">Reviews</h2>
-        {% if course.reviews %}
-            {% for review in course.reviews %}
-                <div class="mb-4 bg-white rounded-lg shadow p-4">
-                    <div class="flex items-center mb-2">
-                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
-                            {{ review.student_name[0] }}
-                        </div>
-                        <div>
-                            <h3 class="font-semibold">{{ review.student_name }}</h3>
-                            <div class="flex items-center">
-                                {% for _ in range(review.rating|int) %}
-                                    <i data-lucide="star" class="w-4 h-4 text-yellow-400"></i>
-                                {% endfor %}
-                                {% for _ in range(5 - review.rating|int) %}
-                                    <i data-lucide="star" class="w-4 h-4 text-gray-300"></i>
-                                {% endfor %}
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold mb-4">Reviews</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% if course.reviews %}
+                    {% for review in course.reviews[:4] %}
+                        <div class="bg-white rounded-lg shadow p-4 flex flex-col h-full">
+                            <div class="flex items-center mb-2">
+                                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                                    {{ review.student_name[0] }}
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold">{{ review.student_name }}</h3>
+                                    <div class="flex items-center">
+                                        {% for _ in range(review.rating|int) %}
+                                            <i data-lucide="star" class="w-4 h-4 text-yellow-400"></i>
+                                        {% endfor %}
+                                        {% for _ in range(5 - review.rating|int) %}
+                                            <i data-lucide="star" class="w-4 h-4 text-gray-300"></i>
+                                        {% endfor %}
+                                    </div>
+                                </div>
                             </div>
+                            {% if review.comment %}
+                                <p class="text-gray-600 mt-2 flex-grow">{{ review.comment }}</p>
+                            {% endif %}
                         </div>
-                    </div>
-                    {% if review.comment %}
-                        <p class="text-gray-600">{{ review.comment }}</p>
-                    {% endif %}
-                </div>
-            {% endfor %}
-        {% else %}
-            <p class="text-gray-600">No reviews yet.</p>
-        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="text-gray-600 col-span-2">No reviews yet.</p>
+                {% endif %}
+            </div>
+        </div>
 
         <h2 class="text-2xl font-bold mb-6">People Also Purchased</h2>
         <div class="relative">
