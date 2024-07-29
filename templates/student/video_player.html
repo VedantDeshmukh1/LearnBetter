@@ -256,7 +256,11 @@
                     if (data.success) {
                         console.log('Progress updated:', data.progress);
                         updateProgressDisplay(data.progress);
-                        moveToNextVideo();  // Add this line to move to the next video
+                        if (data.is_course_completed) {
+                            showCourseCompletionModal();
+                        } else {
+                            moveToNextVideo();
+                        }
                     }
                 })
                 .catch(error => console.error('Error updating progress:', error));
@@ -351,13 +355,16 @@
         }
 
         function showCourseCompletionModal() {
-            if (!hasRated) {
-                document.getElementById('course-completion-modal').classList.remove('hidden');
-                celebrateCourseCompletion();
-            } else {
-                // If the user has already rated, just show a simple completion message
-                alert('Congratulations! You have completed the course.');
-            }
+            document.getElementById('course-completion-modal').classList.remove('hidden');
+            celebrateCourseCompletion();
+        }
+
+        function celebrateCourseCompletion() {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
         }
 
         videoList.addEventListener('click', (event) => {
@@ -466,14 +473,6 @@
                 dropdownMenu.classList.add('hidden');
             }
         });
-
-        function celebrateCourseCompletion() {
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 }
-            });
-        }
     </script>
 
     <!-- Add this script just before the closing </body> tag -->

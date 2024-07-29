@@ -553,7 +553,19 @@ def update_progress(course_id, video_id):
         # Update overall progress
         new_overall_progress = update_student_course_progress(user_id, course_id)
 
-        return jsonify({'success': True, 'progress': new_overall_progress})
+        # Check if this was the last video in the course
+        course_ref = db.collection('course_details').document(course_id)
+        course = course_ref.get().to_dict()
+        total_videos = len(course.get('videos', {}))
+        completed_videos = len([v for v in course_progress.get('videos_completed', {}).values() if v.get('completed', False)])
+        
+        is_course_completed = completed_videos == total_videos
+
+        return jsonify({
+            'success': True, 
+            'progress': new_overall_progress,
+            'is_course_completed': is_course_completed
+        })
     else:
         return jsonify({'success': False, 'error': 'Student not found'}), 404
 
