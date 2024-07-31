@@ -3,294 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Video</title>
+    <title>Add Video - Magpie Learning</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
         body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
         }
-        .card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+        .upload-animation {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
         }
-        .card-header {
-            background-color: #f7f7f7;
-            padding: 20px;
-            border-bottom: 1px solid #eaeaea;
-        }
-        .card-title {
-            margin: 0;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        .card-content {
-            padding: 20px;
-        }
-        .card-footer {
-            padding: 20px;
-            background-color: #f7f7f7;
-            border-top: 1px solid #eaeaea;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input[type="text"],
-        textarea,
-        input[type="file"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        textarea {
-            height: 100px;
-        }
-        .btn {
-            display: inline-block;
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            text-decoration: none;
-        }
-        .btn:hover {
-            background-color: #0056b3;
-        }
-        .btn:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        .btn-outline {
-            background-color: transparent;
-            color: #007bff;
-            border: 1px solid #007bff;
-        }
-        .btn-outline:hover {
-            background-color: #007bff;
-            color: white;
-        }
-        .loading-container {
-            text-align: center;
-            margin-top: 20px;
-            display: none;
-        }
-        .bird {
-            font-size: 30px;
-            display: inline-block;
-            animation: fly 2s infinite;
-        }
-        @keyframes fly {
-            0% {
-                transform: translateX(-100%) translateY(0px) scale(0.8);
-            }
-            50% {
-                transform: translateX(50%) translateY(-40px) scale(1);
-            }
-            100% {
-                transform: translateX(200%) translateY(0px) scale(0.8);
-            }
-        }
-        .status-message {
-            margin-top: 10px;
-            font-weight: bold;
-            text-align: center;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body>
-    <div class="card">
-        <div class="card-header">
-            <h1 class="card-title">Add Video</h1>
+<body class="bg-gray-100">
+    <header class="bg-white shadow-md">
+        <nav class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <a href="{{ url_for('teacher.dashboard') }}" class="text-2xl font-bold text-blue-600">Magpie Learning</a>
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('teacher.add_course') }}" class="text-gray-600 hover:text-blue-600">Create Courses</a>
+                    <a href="{{ url_for('teacher.edit_courses') }}" class="text-gray-600 hover:text-blue-600">Edit Courses</a>
+                    <a href="{{ url_for('teacher.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a>
+                    <div class="relative inline-block">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center cursor-pointer" id="userDropdown">
+                            {{ session['user']['first_name'][0] }}
+                        </div>
+                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
+                            <a href="{{ url_for('teacher.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                            <a href="{{ url_for('teacher.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4">
+                    <h2 class="text-2xl font-bold text-white">Add New Video</h2>
+                </div>
+                <div class="p-6">
+                    <form method="POST" enctype="multipart/form-data" id="uploadForm" class="space-y-6">
+                        <div>
+                            <label for="video_title" class="block text-sm font-medium text-gray-700">Video Title:</label>
+                            <input type="text" id="video_title" name="video_title" required placeholder="Enter video title" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+
+                        <div>
+                            <label for="video_description" class="block text-sm font-medium text-gray-700">Video Description:</label>
+                            <textarea id="video_description" name="video_description" rows="4" required placeholder="Provide a brief description of your video" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                        </div>
+
+                        <div>
+                            <label for="video_file" class="block text-sm font-medium text-gray-700">Video File:</label>
+                            <input type="file" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" id="video_file" name="video_file" accept="video/*" required>
+                        </div>
+
+                        <div id="loading-container" class="text-center hidden">
+                            <div class="upload-animation mx-auto mb-4"></div>
+                            <p class="mt-2 text-gray-600">Uploading video...</p>
+                        </div>
+
+                        <div id="status-message" class="text-center font-bold hidden"></div>
+
+                        <div>
+                            <button type="submit" id="submitBtn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                                Add Video
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                    <a href="{{ url_for('teacher.edit_course', course_id=course_id) }}" class="text-sm font-medium text-blue-600 hover:text-blue-500">← Back to Course</a>
+                </div>
+            </div>
         </div>
-        <div class="card-content">
-            <form method="POST" enctype="multipart/form-data" id="uploadForm">
-                <div class="form-group">
-                    <label for="video_title">Video Title:</label>
-                    <input type="text" id="video_title" name="video_title" required>
+    </main>
+
+    <!-- Upload success modal -->
+    <div id="successModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
                 </div>
-
-                <div class="form-group">
-                    <label for="video_description">Video Description:</label>
-                    <textarea id="video_description" name="video_description" required></textarea>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Upload Successful!</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">Your video has been successfully uploaded.</p>
                 </div>
-
-                <div class="form-group">
-                    <label for="video_file">Video File:</label>
-                    <input type="file" class="form-control-file" id="video_file" name="video_file" accept="video/*" required>
+                <div class="items-center px-4 py-3">
+                    <button id="closeModal" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                        OK
+                    </button>
                 </div>
-
-                <div id="loading-container" class="loading-container">
-                    <div class="bird">🐦</div>
-                    <p>Uploading video...</p>
-                </div>
-
-                <div id="status-message" class="status-message"></div>
-
-                <button type="submit" class="btn" id="submitBtn">Add Video</button>
-            </form>
-        </div>
-        <div class="card-footer">
-            <a href="{{ url_for('teacher.edit_course', course_id=course_id) }}" class="btn btn-outline">Back to Course</a>
+            </div>
         </div>
     </div>
 
     <script>
-    document.getElementById('uploadForm').onsubmit = function(e) {
-        e.preventDefault();
-        var form = this;
-        var formData = new FormData(form);
-        var xhr = new XMLHttpRequest();
-        var loadingContainer = document.getElementById('loading-container');
-        var statusMessage = document.getElementById('status-message');
-        var submitBtn = document.getElementById('submitBtn');
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('uploadForm');
+            const loadingContainer = document.getElementById('loading-container');
+            const statusMessage = document.getElementById('status-message');
+            const submitBtn = document.getElementById('submitBtn');
+            const successModal = document.getElementById('successModal');
+            const closeModalBtn = document.getElementById('closeModal');
 
-        xhr.open('POST', form.action, true);
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                loadingContainer.classList.remove('hidden');
+                submitBtn.disabled = true;
+                statusMessage.classList.add('hidden');
 
-        xhr.upload.onprogress = function(e) {
-            if (e.lengthComputable) {
-                var percentComplete = (e.loaded / e.total) * 100;
-                if (percentComplete === 100) {
-                    statusMessage.style.display = 'block';
-                    statusMessage.textContent = 'File uploaded. Processing...';
-                }
-            }
-        };
+                const formData = new FormData(form);
 
-        xhr.onloadstart = function(e) {
-            loadingContainer.style.display = 'block';
-            submitBtn.disabled = true;
-        };
-
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState == 4) {
-                loadingContainer.style.display = 'none';
-                if (xhr.status == 200) {
-                    statusMessage.textContent = 'Video successfully uploaded and processed!';
-                    setTimeout(function() {
-                        window.location.href = "{{ url_for('teacher.edit_course', course_id=course_id) }}";
-                    }, 2000);
-                } else {
-                    statusMessage.textContent = 'Upload failed. Please try again.';
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loadingContainer.classList.add('hidden');
                     submitBtn.disabled = false;
-                }
-            }
-        };
+                    if (data.success) {
+                        successModal.classList.remove('hidden');
+                    } else {
+                        statusMessage.textContent = data.message;
+                        statusMessage.classList.remove('hidden');
+                    }
+                })
+                .catch(error => {
+                    loadingContainer.classList.add('hidden');
+                    submitBtn.disabled = false;
+                    statusMessage.textContent = 'An error occurred. Please try again.';
+                    statusMessage.classList.remove('hidden');
+                    console.error('Error:', error);
+                });
+            });
 
-        xhr.send(formData);
-    };
+            closeModalBtn.addEventListener('click', function() {
+                successModal.classList.add('hidden');
+                window.location.href = "{{ url_for('teacher.edit_course', course_id=course_id) }}";
+            });
+        });
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Toggle dropdown menu
+        const userDropdown = document.getElementById('userDropdown');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+
+        userDropdown.addEventListener('click', function(event) {
+            event.stopPropagation();
+            dropdownMenu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!userDropdown.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
     </script>
 </body>
 </html>
-
-
-
-<!-- {% extends "teacher/base_teacher.html" %}
-{% block content %}
-<style>
-    @keyframes fly {
-        0% {
-            transform: translateX(-100%) translateY(0px) scale(0.8);
-        }
-        50% {
-            transform: translateX(50%) translateY(-40px) scale(1);
-        }
-        100% {
-            transform: translateX(200%) translateY(0px) scale(0.8);
-        }
-    }
-    .bird {
-        font-size: 30px;
-        display: inline-block;
-        animation: fly 2s infinite;
-    }
-    #loading-container {
-        text-align: center;
-        margin-top: 20px;
-    }
-</style>
-
-<h1>Add Video</h1>
-<form method="POST" enctype="multipart/form-data" id="uploadForm">
-    <label for="video_title">Video Title:</label>
-    <input type="text" id="video_title" name="video_title" required><br>
-
-    <label for="video_description">Video Description:</label>
-    <textarea id="video_description" name="video_description" required></textarea><br>
-
-    <div class="form-group">
-        <label for="video_file">Video File</label>
-        <input type="file" class="form-control-file" id="video_file" name="video_file" accept="video/*" required>
-    </div>
-
-    <div id="loading-container" style="display: none;">
-        <div class="bird">🐦</div>
-        <p>Uploading video...</p>
-    </div>
-
-    <div id="status-message" style="display: none; margin-top: 10px; font-weight: bold;"></div>
-
-    <input type="submit" value="Add Video" id="submitBtn">
-</form>
-<a href="{{ url_for('teacher.edit_course', course_id=course_id) }}">Back to Course</a>
-
-<script>
-document.getElementById('uploadForm').onsubmit = function(e) {
-    e.preventDefault();
-    var form = this;
-    var formData = new FormData(form);
-    var xhr = new XMLHttpRequest();
-    var loadingContainer = document.getElementById('loading-container');
-    var statusMessage = document.getElementById('status-message');
-    var submitBtn = document.getElementById('submitBtn');
-
-    xhr.open('POST', form.action, true);
-
-    xhr.upload.onprogress = function(e) {
-        if (e.lengthComputable) {
-            var percentComplete = (e.loaded / e.total) * 100;
-            if (percentComplete === 100) {
-                statusMessage.style.display = 'block';
-                statusMessage.textContent = 'File uploaded. Processing...';
-            }
-        }
-    };
-
-    xhr.onloadstart = function(e) {
-        loadingContainer.style.display = 'block';
-        submitBtn.disabled = true;
-    };
-
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState == 4) {
-            loadingContainer.style.display = 'none';
-            if (xhr.status == 200) {
-                statusMessage.textContent = 'Video successfully uploaded and processed!';
-                setTimeout(function() {
-                    window.location.href = "{{ url_for('teacher.edit_course', course_id=course_id) }}";
-                }, 2000);
-            } else {
-                statusMessage.textContent = 'Upload failed. Please try again.';
-                submitBtn.disabled = false;
-            }
-        }
-    };
-
-    xhr.send(formData);
-};
-</script>
-{% endblock %} -->

@@ -3,127 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Course</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.js"></script>
+    <title>View Course - Magpie Learning</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .icon {
-            width: 1.25rem;
-            height: 1.25rem;
-            stroke-width: 2;
-        }
-        .header-icon {
-            width: 1rem;
-            height: 1rem;
-            stroke-width: 2;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
         }
     </style>
 </head>
 <body class="bg-gray-100">
-    <header class="bg-white shadow-md mb-8">
+    <header class="bg-white shadow-md">
         <nav class="container mx-auto px-6 py-3">
             <div class="flex justify-between items-center">
-                <div class="flex items-center">
-                    <a href="{{ url_for('teacher.dashboard') }}" class="text-gray-800 hover:text-blue-600 mr-4">
-                        <i data-lucide="arrow-left" class="header-icon inline-block align-text-bottom"></i>
-                        Back to Dashboard
-                    </a>
-                    <div class="text-2xl font-bold text-blue-600">Magpie Learning</div>
-                </div>
-                <div class="flex space-x-4 items-center">
-                    <a href="#" class="text-gray-800 hover:text-blue-600">Help</a>
-                    <a href="{{ url_for('teacher.logout') }}" class="text-gray-800 hover:text-blue-600">Logout</a>
+                <a href="{{ url_for('teacher.dashboard') }}" class="text-2xl font-bold text-blue-600">Magpie Learning</a>
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('teacher.add_course') }}" class="text-gray-600 hover:text-blue-600">Create Courses</a>
+                    <a href="{{ url_for('teacher.edit_courses') }}" class="text-gray-600 hover:text-blue-600">Edit Courses</a>
+                    <a href="{{ url_for('teacher.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a>
+                    <div class="relative inline-block">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center cursor-pointer" id="userDropdown">
+                            {{ session['user']['first_name'][0] }}
+                        </div>
+                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
+                            <a href="{{ url_for('teacher.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                            <a href="{{ url_for('teacher.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </nav>
     </header>
 
-    <div class="max-w-4xl mx-auto p-8 bg-white shadow-lg rounded-lg">
-        <h2 class="text-3xl font-bold mb-6 text-gray-800">{{ course.course_name }}</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-blue-50 p-4 rounded-lg">
-                <div class="flex items-center mb-2">
-                    <i data-lucide="clock" class="icon text-blue-500 mr-2"></i>
-                    <span class="text-sm font-semibold text-gray-600">Duration</span>
+    <main class="container mx-auto px-6 py-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4">
+                    <h2 class="text-2xl font-bold text-white">{{ course.course_name }}</h2>
                 </div>
-                <p class="text-2xl font-bold text-gray-800">{{ course.course_duration }} hours</p>
-            </div>
-            <div class="bg-green-50 p-4 rounded-lg">
-                <div class="flex items-center mb-2">
-                    <i data-lucide="dollar-sign" class="icon text-green-500 mr-2"></i>
-                    <span class="text-sm font-semibold text-gray-600">Price</span>
-                </div>
-                <p class="text-2xl font-bold text-gray-800">₹{{ course.course_price }}</p>
-            </div>
-            <div class="bg-purple-50 p-4 rounded-lg">
-                <div class="flex items-center mb-2">
-                    <i data-lucide="users" class="icon text-purple-500 mr-2"></i>
-                    <span class="text-sm font-semibold text-gray-600">Enrollments</span>
-                </div>
-                <p class="text-2xl font-bold text-gray-800">{{ course.total_enrollments }}</p>
-            </div>
-            <div class="bg-indigo-50 p-4 rounded-lg">
-                <div class="flex items-center mb-2">
-                    <i data-lucide="trending-up" class="icon text-indigo-500 mr-2"></i>
-                    <span class="text-sm font-semibold text-gray-600">Total Revenue</span>
-                </div>
-                <p class="text-2xl font-bold text-gray-800">₹{{ course.total_revenue }}</p>
-            </div>
-            <div class="bg-yellow-50 p-4 rounded-lg col-span-2">
-                <div class="flex items-center mb-2">
-                    <i data-lucide="star" class="icon text-yellow-500 mr-2"></i>
-                    <span class="text-sm font-semibold text-gray-600">Average Rating</span>
-                </div>
-                <div class="flex items-center">
-                    <p class="text-2xl font-bold text-gray-800 mr-2">{{ course.average_rating|round(2) }}</p>
-                    <div class="flex">
-                        {% for _ in range(5) %}
-                            <i data-lucide="star" class="icon text-yellow-400" {% if loop.index <= (course.average_rating|round(0)) %}fill="currentColor"{% endif %}></i>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div class="flex items-center mb-2">
+                                <i data-lucide="clock" class="w-5 h-5 text-blue-500 mr-2"></i>
+                                <span class="text-sm font-semibold text-gray-600">Duration</span>
+                            </div>
+                        <p class="text-2xl font-bold text-gray-800">{{ "%.2f"|format(course.course_duration) }} hours</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="flex items-center mb-2">
+                                <i data-lucide="dollar-sign" class="w-5 h-5 text-green-500 mr-2"></i>
+                                <span class="text-sm font-semibold text-gray-600">Price</span>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-800">₹{{ course.course_price }}</p>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <div class="flex items-center mb-2">
+                                <i data-lucide="users" class="w-5 h-5 text-purple-500 mr-2"></i>
+                                <span class="text-sm font-semibold text-gray-600">Enrollments</span>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-800">{{ course.total_enrollments }}</p>
+                        </div>
+                        <div class="bg-indigo-50 p-4 rounded-lg">
+                            <div class="flex items-center mb-2">
+                                <i data-lucide="trending-up" class="w-5 h-5 text-indigo-500 mr-2"></i>
+                                <span class="text-sm font-semibold text-gray-600">Total Revenue</span>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-800">₹{{ course.total_revenue }}</p>
+                        </div>
+                        <div class="bg-yellow-50 p-4 rounded-lg col-span-2">
+                            <div class="flex items-center mb-2">
+                                <i data-lucide="star" class="w-5 h-5 text-yellow-500 mr-2"></i>
+                                <span class="text-sm font-semibold text-gray-600">Average Rating</span>
+                            </div>
+                            <div class="flex items-center">
+                                <p class="text-2xl font-bold text-gray-800 mr-2">{{ course.average_rating|round(2) }}</p>
+                                <div class="flex">
+                                    {% for _ in range(5) %}
+                                        {% set rating = course.average_rating %}
+                                        {% if loop.index <= rating|int %}
+                                            <i data-lucide="star" class="w-5 h-5 text-yellow-400" fill="currentColor"></i>
+                                        {% elif loop.index - rating|int == 1 and (rating % 1)|round(1) >= 0.5 %}
+                                            <i data-lucide="star-half" class="w-5 h-5 text-yellow-400" fill="currentColor"></i>
+                                        {% else %}
+                                            <i data-lucide="star" class="w-5 h-5 text-yellow-400"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <p class="ml-2 text-sm text-gray-600">({{ course.total_ratings }} ratings)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="text-2xl font-semibold mb-4 text-gray-800">Course Content</h3>
+                    <ul class="space-y-4 mb-8">
+                        {% for video_id, video in course.videos.items() %}
+                            <li class="flex items-center justify-between bg-gray-50 p-4 rounded-md hover:bg-gray-100 transition duration-300">
+                                <div class="flex items-center">
+                                    <i data-lucide="video" class="w-5 h-5 text-blue-500 mr-3"></i>
+                                    <span class="text-gray-700 font-medium">{{ video.title }}</span>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <span class="text-sm text-gray-500">{{ video.duration }} min</span>
+                                    <button onclick="window.open('{{ video.url }}', '_blank')" class="text-blue-500 hover:text-blue-700 transition duration-300">Watch</button>
+                                    <button onclick="window.location.href='{{ url_for('teacher.edit_video', course_id=course.id, video_id=video_id) }}'" class="text-yellow-500 hover:text-yellow-700 transition duration-300">
+                                        <i data-lucide="edit" class="w-5 h-5"></i>
+                                    </button>
+                                    <button onclick="if(confirm('Are you sure you want to delete this video?')) window.location.href='{{ url_for('teacher.delete_video', course_id=course.id, video_id=video_id) }}'" class="text-red-500 hover:text-red-700 transition duration-300">
+                                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </li>
                         {% endfor %}
+                    </ul>
+
+                    <div class="flex space-x-4">
+                        <button onclick="window.location.href='{{ url_for('teacher.add_video', course_id=course.id) }}'" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-300">
+                            Add New Video
+                        </button>
+                        <button onclick="window.location.href='{{ url_for('teacher.edit_course', course_id=course.id) }}'" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition duration-300">
+                            Edit Course
+                        </button>
                     </div>
-                    <p class="ml-2 text-sm text-gray-600">({{ course.total_ratings }} ratings)</p>
                 </div>
             </div>
         </div>
-
-        <h3 class="text-2xl font-semibold mb-4 text-gray-800">Course Content</h3>
-        <ul class="space-y-4 mb-8">
-            {% for video_id, video in course.videos.items() %}
-                <li class="flex items-center justify-between bg-gray-50 p-4 rounded-md hover:bg-gray-100 transition duration-300">
-                    <div class="flex items-center">
-                        <i data-lucide="video" class="icon text-blue-500 mr-3"></i>
-                        <span class="text-gray-700 font-medium">{{ video.title }}</span>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <span class="text-sm text-gray-500">{{ video.duration }} min</span>
-                        <a href="{{ video.url }}" target="_blank" class="text-blue-500 hover:text-blue-700 transition duration-300">Watch</a>
-                        <a href="{{ url_for('teacher.edit_video', course_id=course.id, video_id=video_id) }}" class="text-yellow-500 hover:text-yellow-700 transition duration-300">
-                            <i data-lucide="edit" class="icon"></i>
-                        </a>
-                        <a href="{{ url_for('teacher.delete_video', course_id=course.id, video_id=video_id) }}" onclick="return confirm('Are you sure you want to delete this video?');" class="text-red-500 hover:text-red-700 transition duration-300">
-                            <i data-lucide="trash-2" class="icon"></i>
-                        </a>
-                    </div>
-                </li>
-            {% endfor %}
-        </ul>
-
-        <div class="flex space-x-4">
-            <a href="{{ url_for('teacher.add_video', course_id=course.id) }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-300">
-                Add New Video
-            </a>
-            <a href="{{ url_for('teacher.edit_course', course_id=course.id) }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition duration-300">
-                Edit Course
-            </a>
-            <a href="{{ url_for('teacher.dashboard') }}" class="text-blue-500 hover:text-blue-700 transition duration-300">
-                Back to Dashboard
-            </a>
-        </div>
-    </div>
+    </main>
 
     <script>
+        // Initialize Lucide icons
         lucide.createIcons();
+
+        // Toggle dropdown menu
+        const userDropdown = document.getElementById('userDropdown');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+
+        userDropdown.addEventListener('click', function(event) {
+            event.stopPropagation();
+            dropdownMenu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!userDropdown.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
     </script>
 </body>
 </html>

@@ -20,20 +20,15 @@
     <header class="bg-white shadow-md">
         <nav class="container mx-auto px-6 py-3">
             <div class="flex justify-between items-center">
-                <div class="text-2xl font-bold text-blue-600">Magpie Learning</div>
-                <ul class="flex space-x-4">
-                    <li><a href="{{ url_for('teacher.add_course') }}" class="text-gray-600 hover:text-blue-600">Create Courses</a></li>
-                    <li><a href="#" class="text-blue-600 font-semibold">Dashboard</a></li>
-                </ul>
+                <a href="{{ url_for('teacher.dashboard') }}" class="text-2xl font-bold text-blue-600">Magpie Learning</a>
                 <div class="flex items-center space-x-4">
-                    <div class="relative">
-                        <i data-lucide="bell" class="text-gray-600"></i>
-                    </div>
-                    <div class="relative">
-                        <i data-lucide="message-circle" class="text-gray-600"></i>
-                    </div>
+                    <a href="{{ url_for('teacher.add_course') }}" class="text-gray-600 hover:text-blue-600">Create Courses</a>
+                    <a href="{{ url_for('teacher.edit_courses') }}" class="text-gray-600 hover:text-blue-600">Edit Courses</a>
+                    <a href="#" class="text-blue-600 font-semibold">Dashboard</a>
                     <div class="relative inline-block">
-                        <i data-lucide="settings" class="text-gray-600 cursor-pointer" id="settingsDropdown"></i>
+                        <div class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center cursor-pointer" id="userDropdown">
+                            {{ session['user']['first_name'][0] }}
+                        </div>
                         <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
                             <a href="{{ url_for('teacher.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
                             <a href="{{ url_for('teacher.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
@@ -55,7 +50,6 @@
                     <p class="text-gray-600">{{ analytics.average_rating|round(2) }} ({{ analytics.total_enrollments }} Ratings)</p>
                 </div>
             </div>
-            <a href="{{ url_for('teacher.add_course') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition duration-300">ADD A NEW COURSE</a>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -77,29 +71,15 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <div class="bg-white rounded-lg shadow p-6">
-                <h2 class="text-xl font-semibold mb-4">Course Performance</h2>
+        <div class="grid grid-cols-1 gap-8 mb-8">
+            <div class="bg-white rounded-lg shadow p-6 col-span-2">
+                <h2 class="text-xl font-semibold mb-4">Course Performance Overview</h2>
                 <canvas id="coursePerformanceChart"></canvas>
-            </div>
-            <div class="bg-white rounded-lg shadow p-6">
-                <h2 class="text-xl font-semibold mb-4">Your Courses</h2>
-                <ul class="space-y-2">
-                {% for course in courses %}
-                    <li class="flex justify-between items-center border-b pb-2">
-                        <span>{{ course.course_name }}</span>
-                        <div>
-                            <a href="{{ url_for('teacher.edit_course', course_id=course.id) }}" class="text-blue-600 hover:underline mr-2">Edit</a>
-                            <a href="{{ url_for('teacher.view_course', course_id=course.id) }}" class="text-blue-600 hover:underline">View</a>
-                        </div>
-                    </li>
-                {% endfor %}
-                </ul>
             </div>
         </div>
 
         <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4">Most Popular Courses</h2>
+            <h2 class="text-xl font-semibold mb-4">Your Courses</h2>
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead class="bg-gray-50">
@@ -108,9 +88,23 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrolled Students</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="popularCoursesTable" class="bg-white divide-y divide-gray-200"></tbody>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                    {% for course in courses %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ course.course_name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ course.total_enrollments or 0 }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ course.average_rating|round(1) if course.average_rating else 'N/A' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">₹{{ course.total_revenue or 0 }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <a href="{{ url_for('teacher.edit_course', course_id=course.id) }}" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded mr-2">Edit</a>
+                                <a href="{{ url_for('teacher.view_course', course_id=course.id) }}" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded">View</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -128,16 +122,16 @@
         lucide.createIcons();
 
         // Toggle dropdown menu
-        const settingsDropdown = document.getElementById('settingsDropdown');
+        const userDropdown = document.getElementById('userDropdown');
         const dropdownMenu = document.getElementById('dropdownMenu');
 
-        settingsDropdown.addEventListener('click', function(event) {
+        userDropdown.addEventListener('click', function(event) {
             event.stopPropagation();
             dropdownMenu.classList.toggle('hidden');
         });
 
         document.addEventListener('click', function(event) {
-            if (!settingsDropdown.contains(event.target) && !dropdownMenu.contains(event.target)) {
+            if (!userDropdown.contains(event.target) && !dropdownMenu.contains(event.target)) {
                 dropdownMenu.classList.add('hidden');
             }
         });
@@ -156,42 +150,74 @@
                 labels: coursePerformanceData.map(course => course.course_name),
                 datasets: [
                     {
-                        label: 'Students',
+                        label: 'Enrollments',
                         data: coursePerformanceData.map(course => course.total_enrollments || 0),
                         backgroundColor: 'rgba(59, 130, 246, 0.5)',
                         borderColor: 'rgb(59, 130, 246)',
-                        borderWidth: 1
+                        borderWidth: 1,
+                        yAxisID: 'y-enrollments',
                     },
                     {
                         label: 'Revenue (₹)',
                         data: coursePerformanceData.map(course => course.total_revenue || 0),
                         backgroundColor: 'rgba(16, 185, 129, 0.5)',
                         borderColor: 'rgb(16, 185, 129)',
-                        borderWidth: 1
+                        borderWidth: 1,
+                        yAxisID: 'y-revenue',
+                    },
+                    {
+                        label: 'Average Rating',
+                        data: coursePerformanceData.map(course => course.average_rating || 0),
+                        type: 'line',
+                        borderColor: 'rgb(245, 158, 11)',
+                        borderWidth: 2,
+                        fill: false,
+                        yAxisID: 'y-rating',
                     }
                 ]
             },
             options: {
                 responsive: true,
                 scales: {
-                    y: {
+                    'y-enrollments': {
+                        type: 'linear',
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Enrollments'
+                        },
                         beginAtZero: true
+                    },
+                    'y-revenue': {
+                        type: 'linear',
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Revenue (₹)'
+                        },
+                        beginAtZero: true
+                    },
+                    'y-rating': {
+                        type: 'linear',
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Avg Rating'
+                        },
+                        min: 0,
+                        max: 5,
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
                     }
                 }
             }
-        });
-
-        // Populate popular courses table
-        const popularCoursesTable = document.getElementById('popularCoursesTable');
-        coursePerformanceData.forEach(course => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap">${course.course_name}</td>
-                <td class="px-6 py-4 whitespace-nowrap">${course.total_enrollments || 0}</td>
-                <td class="px-6 py-4 whitespace-nowrap">${course.average_rating ? course.average_rating.toFixed(1) : 'N/A'}</td>
-                <td class="px-6 py-4 whitespace-nowrap">₹${course.total_revenue || 0}</td>
-            `;
-            popularCoursesTable.appendChild(tr);
         });
     </script>
 </body>

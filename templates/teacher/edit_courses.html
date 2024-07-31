@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Video - Magpie Learning</title>
+    <title>Edit Courses - Magpie Learning</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -22,7 +22,7 @@
                 <a href="{{ url_for('teacher.dashboard') }}" class="text-2xl font-bold text-blue-600">Magpie Learning</a>
                 <div class="flex items-center space-x-4">
                     <a href="{{ url_for('teacher.add_course') }}" class="text-gray-600 hover:text-blue-600">Create Courses</a>
-                    <a href="{{ url_for('teacher.edit_courses') }}" class="text-gray-600 hover:text-blue-600">Edit Courses</a>
+                    <a href="#" class="text-blue-600 font-semibold">Edit Courses</a>
                     <a href="{{ url_for('teacher.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a>
                     <div class="relative inline-block">
                         <div class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center cursor-pointer" id="userDropdown">
@@ -39,39 +39,35 @@
     </header>
 
     <main class="container mx-auto px-6 py-8">
-        <div class="max-w-4xl mx-auto">
-            <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4">
-                    <h2 class="text-2xl font-bold text-white">Edit Video</h2>
-                </div>
-                <div class="p-6">
-                    <form method="POST" enctype="multipart/form-data" class="space-y-6">
-                        <div>
-                            <label for="video_title" class="block text-sm font-medium text-gray-700">Video Title:</label>
-                            <input type="text" id="video_title" name="video_title" value="{{ video.title }}" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        </div>
+        <h1 class="text-3xl font-bold mb-8">Edit Your Courses</h1>
 
-                        <div>
-                            <label for="video_description" class="block text-sm font-medium text-gray-700">Video Description:</label>
-                            <textarea id="video_description" name="video_description" rows="4" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">{{ video.description }}</textarea>
-                        </div>
-
-                        <div>
-                            <label for="video_file" class="block text-sm font-medium text-gray-700">Video File:</label>
-                            <input type="file" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" id="video_file" name="video_file" accept="video/*">
-                            <p class="mt-1 text-sm text-gray-500">Leave empty to keep the current video file.</p>
-                        </div>
-
-                        <div>
-                            <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
-                                Update Video
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                    <a href="{{ url_for('teacher.edit_course', course_id=course_id) }}" class="text-sm font-medium text-blue-600 hover:text-blue-500">← Back to Course</a>
-                </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrolled Students</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                    {% for course in courses %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ course.course_name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ course.total_enrollments or 0 }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ course.average_rating|round(1) if course.average_rating else 'N/A' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">₹{{ course.total_revenue or 0 }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <a href="{{ url_for('teacher.edit_course', course_id=course.id) }}" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded mr-2">Edit</a>
+                                <a href="{{ url_for('teacher.view_course', course_id=course.id) }}" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded">View</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </main>

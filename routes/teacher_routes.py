@@ -332,12 +332,14 @@ def dashboard():
     for doc in course_docs:
         course = doc.to_dict()
         course['id'] = doc.id
+        course['total_enrollments'] = course.get('total_enrollments', 0)
+        course['average_rating'] = course.get('average_rating', 0)
         courses.append(course)
         
-        total_enrollments += course.get('total_enrollments', 0)
+        total_enrollments += course['total_enrollments']
         total_revenue += course.get('total_revenue', 0)
         total_ratings += course.get('total_ratings', 0)
-        total_rating_sum += course.get('average_rating', 0) * course.get('total_ratings', 0)
+        total_rating_sum += course['average_rating'] * course.get('total_ratings', 0)
 
     average_rating = total_rating_sum / total_ratings if total_ratings > 0 else 0
 
@@ -355,8 +357,8 @@ def dashboard():
 def add_course():
     if request.method == 'POST':
         course_name = request.form['course_name']
-        course_duration = int(request.form['course_duration'])
         course_price = float(request.form['course_price'])
+        course_description = request.form['course_description']  # New field
         
         if not validate_name(course_name):
             flash('Course name must be at least 2 characters long', 'error')
@@ -364,14 +366,11 @@ def add_course():
         
         course_data = {
             'course_name': course_name,
-            'course_duration': course_duration,
+            'course_duration': 0,
             'course_price': course_price,
+            'course_description': course_description,  # New field
             'course_instructor': f"{session['user']['first_name']} {session['user']['last_name']}",
             'course_instructor_id': session['user_id'],
-            'total_enrollments': 0,
-            'total_revenue': 0,
-            'average_rating': 0,
-            'total_ratings': 0,
             'videos': {},
             'enrollments': {},
             'ratings': {}
@@ -392,6 +391,23 @@ def add_course():
     
     return render_template('teacher/add_course.html')
 
+@bp.route('/edit_courses')
+@teacher_required
+def edit_courses():
+    user_id = session['user_id']
+    courses = []
+
+    course_docs = db.collection('course_details').where('course_instructor_id', '==', user_id).stream()
+    for doc in course_docs:
+        course = doc.to_dict()
+        course['id'] = doc.id
+        course['total_enrollments'] = course.get('total_enrollments', 0)
+        course['average_rating'] = course.get('average_rating', 0)
+        course['total_revenue'] = course.get('total_revenue', 0)
+        courses.append(course)
+
+    return render_template('teacher/edit_courses.html', courses=courses)
+
 @bp.route('/edit_course/<course_id>', methods=['GET', 'POST'])
 @teacher_required
 def edit_course(course_id):
@@ -400,14 +416,12 @@ def edit_course(course_id):
     course['id'] = course_id
 
     if request.method == 'POST':
-        course_name = request.form['course_name']
-        course_duration = int(request.form['course_duration'])
         course_price = float(request.form['course_price'])
+        course_description = request.form['course_description']  # New field
         
         course_ref.update({
-            'course_name': course_name,
-            'course_duration': course_duration,
-            'course_price': course_price
+            'course_price': course_price,
+            'course_description': course_description  # New field
         })
         
         flash('Course updated successfully', 'success')
@@ -466,63 +480,65 @@ def add_video(course_id):
     current_video_count = len(course.get('videos', {}))
     
     if request.method == 'POST':
-        video_title = request.form['video_title']
-        video_description = request.form['video_description']
-        
-        if not validate_name(video_title):
-            flash('Video title must be at least 2 characters long', 'error')
-            return render_template('teacher/add_video.html', course_id=course_id)
-        
-        video_file = request.files['video_file']
-        if not video_file:
-            flash('No video file uploaded', 'error')
-            return render_template('teacher/add_video.html', course_id=course_id)
-        
-        filename = secure_filename(video_file.filename)
-        file_extension = os.path.splitext(filename)[1]
-        video_id = generate_video_id()
-        unique_filename = f"{video_id}{file_extension}"
-        
-        temp_path = f"temp_{unique_filename}"
-        video_file.save(temp_path)
-        
-        video_duration = get_video_duration(temp_path)
-        if video_duration is None:
+        try:
+            video_title = request.form['video_title']
+            video_description = request.form['video_description']
+            
+            if not validate_name(video_title):
+                return jsonify({'success': False, 'message': 'Video title must be at least 2 characters long'}), 400
+            
+            video_file = request.files['video_file']
+            if not video_file:
+                return jsonify({'success': False, 'message': 'No video file uploaded'}), 400
+            
+            filename = secure_filename(video_file.filename)
+            file_extension = os.path.splitext(filename)[1]
+            video_id = generate_video_id()
+            unique_filename = f"{video_id}{file_extension}"
+            
+            temp_path = f"temp_{unique_filename}"
+            video_file.save(temp_path)
+            
+            video_duration = get_video_duration(temp_path)
+            if video_duration is None:
+                os.remove(temp_path)
+                return jsonify({'success': False, 'message': 'Failed to process video. Please try again or use a different file.'}), 400
+            
+            video_url = upload_to_drive(temp_path, unique_filename, course_id, course_name)
             os.remove(temp_path)
-            flash('Failed to process video. Please try again or use a different file.', 'error')
-            return render_template('teacher/add_video.html', course_id=course_id)
-        
-        video_url = upload_to_drive(temp_path, unique_filename, course_id, course_name)
-        os.remove(temp_path)
-        
-        if not video_url:
-            flash('Failed to upload video', 'error')
-            return render_template('teacher/add_video.html', course_id=course_id)
+            
+            if not video_url:
+                return jsonify({'success': False, 'message': 'Failed to upload video'}), 500
 
-        drive_file_id = get_drive_file_id(video_url)
-        thumbnail_url = f"https://drive.google.com/thumbnail?id={drive_file_id}"
-        
-        video_seq = current_video_count + 1
-        
-        video_data = {
-            'title': video_title,
-            'duration': video_duration,  # This is now in HH:MM:SS format
-            'url': video_url,
-            'description': video_description,
-            'thumbnail': thumbnail_url,
-            'video_seq': video_seq
-        }
-        
-        course_ref.update({
-            f'videos.{video_id}': video_data
-        })
-        
-        # After adding the video, update enrolled students' progress
-        update_enrolled_students_progress(course_id)
+            drive_file_id = get_drive_file_id(video_url)
+            thumbnail_url = f"https://drive.google.com/thumbnail?id={drive_file_id}"
+            
+            video_seq = current_video_count + 1
+            
+            video_data = {
+                'title': video_title,
+                'duration': video_duration,
+                'url': video_url,
+                'description': video_description,
+                'thumbnail': thumbnail_url,
+                'video_seq': video_seq
+            }
+            
+            course_ref.update({
+                f'videos.{video_id}': video_data
+            })
+            
+            # After adding the video, update enrolled students' progress
+            update_enrolled_students_progress(course_id)
 
-        flash('Video added successfully', 'success')
-        return redirect(url_for('teacher.edit_course', course_id=course_id))
-    
+            # Update course duration
+            update_course_duration(course_id)
+
+            return jsonify({'success': True, 'message': 'Video added successfully'})
+        except Exception as e:
+            print(f"Error adding video: {str(e)}")
+            return jsonify({'success': False, 'message': f'Failed to add video: {str(e)}'}), 500
+
     return render_template('teacher/add_video.html', course_id=course_id)
 
 def update_enrolled_students_progress(course_id):
@@ -539,10 +555,13 @@ def update_enrolled_students_progress(course_id):
         if student_doc.exists:
             student_data = student_doc.to_dict()
             course_progress = student_data.get('progress', {}).get(course_id, {})
-            completed_videos = len([v for v in course_progress.get('videos_completed', {}).values() if v.get('completed', False)])
+            videos_completed = course_progress.get('videos_completed', {})
             
+            # Count completed videos
+            completed_videos = sum(1 for video in videos_completed.values() if isinstance(video, dict) and video.get('completed') == True)
+
             # Calculate new overall progress
-            new_overall_progress = (completed_videos / total_videos) * 100
+            new_overall_progress = (completed_videos / total_videos) * 100 if total_videos > 0 else 0
 
             # Update student's progress
             student_ref.update({
@@ -609,6 +628,9 @@ def edit_video(course_id, video_id):
         course_ref.update({
             f'videos.{video_id}': video
         })
+
+        # Update course duration
+        update_course_duration(course_id)
         
         flash('Video updated successfully', 'success')
         return redirect(url_for('teacher.edit_course', course_id=course_id))
@@ -707,10 +729,60 @@ def delete_video(course_id, video_id):
         'videos': remaining_videos
     })
     
+    # Remove the video from enrolled students' progress
+    remove_video_from_students_progress(course_id, video_id)
+    
+    # Update course duration
+    update_course_duration(course_id)
+
     flash('Video deleted successfully and remaining videos reordered', 'success')
     return redirect(url_for('teacher.edit_course', course_id=course_id))
 
+def remove_video_from_students_progress(course_id, video_id):
+    # Get all enrolled students
+    course_ref = db.collection('course_details').document(course_id)
+    course = course_ref.get().to_dict()
+    enrolled_students = course.get('enrollments', {}).keys()
 
+    for student_id in enrolled_students:
+        student_ref = db.collection('student_details').document(student_id)
+        student_doc = student_ref.get()
+        if student_doc.exists:
+            student_data = student_doc.to_dict()
+            course_progress = student_data.get('progress', {}).get(course_id, {})
+            videos_completed = course_progress.get('videos_completed', {})
+            
+            # Remove the deleted video from videos_completed
+            if video_id in videos_completed:
+                videos_completed.pop(video_id)
+                
+                # Recalculate overall progress
+                total_videos = len(course.get('videos', {}))
+                completed_videos = sum(1 for video in videos_completed.values() if isinstance(video, dict) and video.get('completed') == True)
+                new_overall_progress = (completed_videos / total_videos) * 100 if total_videos > 0 else 0
+                
+                # Update student's progress
+                student_ref.update({
+                    f'progress.{course_id}.videos_completed': videos_completed,
+                    f'progress.{course_id}.overall_progress': new_overall_progress,
+                    f'progress.{course_id}.total_videos': total_videos
+                })
+
+def update_course_duration(course_id):
+    course_ref = db.collection('course_details').document(course_id)
+    course = course_ref.get().to_dict()
+    videos = course.get('videos', {})
+    
+    total_duration = sum(
+        sum(int(x) * 60 ** i for i, x in enumerate(reversed(video['duration'].split(':'))))
+        for video in videos.values()
+    )
+    
+    course_duration = round(total_duration / 3600, 2)  # Convert to hours and round to 2 decimal places
+    
+    course_ref.update({
+        'course_duration': course_duration
+    })
 
 @bp.route('/logout')
 def logout():
