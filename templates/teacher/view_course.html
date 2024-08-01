@@ -109,12 +109,6 @@
                                 <div class="flex items-center space-x-4">
                                     <span class="text-sm text-gray-500">{{ video.duration }} min</span>
                                     <button onclick="window.open('{{ video.url }}', '_blank')" class="text-blue-500 hover:text-blue-700 transition duration-300">Watch</button>
-                                    <button onclick="window.location.href='{{ url_for('teacher.edit_video', course_id=course.id, video_id=video_id) }}'" class="text-yellow-500 hover:text-yellow-700 transition duration-300">
-                                        <i data-lucide="edit" class="w-5 h-5"></i>
-                                    </button>
-                                    <button onclick="if(confirm('Are you sure you want to delete this video?')) window.location.href='{{ url_for('teacher.delete_video', course_id=course.id, video_id=video_id) }}'" class="text-red-500 hover:text-red-700 transition duration-300">
-                                        <i data-lucide="trash-2" class="w-5 h-5"></i>
-                                    </button>
                                 </div>
                             </li>
                         {% endfor %}

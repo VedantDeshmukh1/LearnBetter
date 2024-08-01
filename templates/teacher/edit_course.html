@@ -83,8 +83,12 @@
                                 <span class="ml-2">{{ video.title }}</span>
                             </div>
                             <div class="flex space-x-2">
-                                <a href="{{ url_for('teacher.edit_video', course_id=course.id, video_id=video_id) }}" class="text-blue-600 hover:text-blue-800">Edit</a>
-                                <button class="delete-video-btn text-red-600 hover:text-red-800" data-video-id="{{ video_id }}">Delete</button>
+                                <button onclick="window.location.href='{{ url_for('teacher.edit_video', course_id=course.id, video_id=video_id) }}'" class="text-yellow-500 hover:text-yellow-700 transition duration-300">
+                                    <i data-lucide="edit" class="w-5 h-5"></i>
+                                </button>
+                                <button class="delete-video-btn text-red-500 hover:text-red-700 transition duration-300" data-video-id="{{ video_id }}">
+                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                </button>
                             </div>
                         </li>
                     {% endfor %}
