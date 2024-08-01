@@ -5,32 +5,110 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ teacher.name }} - Teacher Profile</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+    </style>
 </head>
 <body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8">
+    <header class="bg-white shadow-md">
+        <nav class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <a href="{{ url_for('student.home') }}" class="text-2xl font-bold text-blue-600">Magpie Learning</a>
+                <div class="flex items-center space-x-4">
+                    <ul class="flex space-x-4">
+                        <li><a href="{{ url_for('student.home') }}" class="text-gray-600 hover:text-blue-600">Home</a></li>
+                        {% if 'user' in session %}
+                        <li><a href="{{ url_for('student.my_courses') }}" class="text-gray-600 hover:text-blue-600">My Courses</a></li>
+                        <li><a href="{{ url_for('student.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
+                        {% endif %}
+                    </ul>
+                    <div class="relative inline-block">
+                        {% if 'user' in session %}
+                            <a href="#" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center" id="userDropdown">
+                                {{ session['user']['first_name'][0] }}
+                            </a>
+                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
+                                <a href="{{ url_for('student.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                <a href="{{ url_for('student.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                            </div>
+                        {% else %}
+                            <a href="{{ url_for('student.login') }}" class="text-blue-600 hover:text-blue-800">Login</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
         <div class="bg-white shadow-md rounded-lg p-6 mb-8">
-            <h1 class="text-3xl font-bold mb-4">{{ teacher.name }}</h1>
-            <p class="text-gray-600 mb-4">{{ teacher.about }}</p>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <h2 class="text-xl font-semibold mb-2">Specialization</h2>
-                    <p>{{ teacher.specialization }}</p>
+            <div class="flex items-center mb-6">
+                <div class="md:flex-shrink-0 bg-gradient-to-br from-blue-500 to-blue-700 p-6 rounded-lg mr-6">
+                    <div class="h-48 w-48 rounded-full bg-white flex items-center justify-center">
+                        <span class="text-blue-600 text-6xl font-bold">{{ teacher.name[0] }}</span>
+                    </div>
                 </div>
                 <div>
-                    <h2 class="text-xl font-semibold mb-2">Teaching Experience</h2>
-                    <p>{{ teacher.teaching_experience }} years</p>
+                    <h1 class="text-3xl font-bold mb-2">{{ teacher.name }}</h1>
+                    {% if teacher.about %}
+                        <p class="text-gray-600">{{ teacher.about }}</p>
+                    {% endif %}
                 </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% if teacher.specialization %}
+                    <div>
+                        <h2 class="text-xl font-semibold mb-2">Specialization</h2>
+                        <p class="text-gray-700">{{ teacher.specialization }}</p>
+                    </div>
+                {% endif %}
+                {% if teacher.teaching_experience %}
+                    <div>
+                        <h2 class="text-xl font-semibold mb-2">Teaching Experience</h2>
+                        <p class="text-gray-700">{{ teacher.teaching_experience }} years</p>
+                    </div>
+                {% endif %}
+                {% if teacher.website %}
+                    <div>
+                        <h2 class="text-xl font-semibold mb-2">Website</h2>
+                        <a href="{{ teacher.website }}" target="_blank" class="text-blue-600 hover:underline">{{ teacher.website }}</a>
+                    </div>
+                {% endif %}
             </div>
         </div>
 
-        <h2 class="text-2xl font-bold mb-4">Courses by {{ teacher.name }}</h2>
+        <div class="bg-white shadow-md rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold mb-4">Teacher Statistics</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% if teacher.courses_created %}
+                    <div class="bg-purple-100 p-4 rounded-lg">
+                        <p class="text-lg font-semibold text-purple-800">Courses Created</p>
+                        <p class="text-3xl font-bold text-purple-600">{{ teacher.courses_created }}</p>
+                    </div>
+                {% endif %}
+                {% if teacher.average_rating %}
+                    <div class="bg-yellow-100 p-4 rounded-lg">
+                        <p class="text-lg font-semibold text-yellow-800">Average Rating</p>
+                        <p class="text-3xl font-bold text-yellow-600">{{ teacher.average_rating | round(2) }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <h2 class="text-2xl font-bold mb-6">Courses by {{ teacher.name }}</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for course in courses %}
                 <div class="bg-white rounded-lg shadow-md overflow-hidden">
                     <img src="{{ (course.videos.values()|list|first).thumbnail if course.videos and course.videos.values()|list else url_for('static', filename='images/default_thumbnail.jpg') }}" alt="{{ course.course_name }}" class="w-full h-40 object-cover">
                     <div class="p-4">
                         <h3 class="font-semibold text-lg mb-1">{{ course.course_name }}</h3>
-                        <p class="text-sm text-gray-600">Rating: {{ course.average_rating }}★</p>
+                        <p class="text-sm text-gray-600">Rating: {{ course.average_rating|round(2) }}★</p>
                         <p class="text-sm text-gray-600">Duration: {{ course.course_duration }} hours</p>
                         <p class="text-sm font-bold mt-2">₹{{ course.course_price }}</p>
                         <a href="{{ url_for('student.course_details', course_id=course.id) }}" class="mt-2 inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">View Course</a>
@@ -38,6 +116,26 @@
                 </div>
             {% endfor %}
         </div>
-    </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        const userDropdown = document.getElementById('userDropdown');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+
+        if (userDropdown && dropdownMenu) {
+            userDropdown.addEventListener('click', function(event) {
+                event.stopPropagation();
+                dropdownMenu.classList.toggle('hidden');
+            });
+
+            document.addEventListener('click', function(event) {
+                if (!userDropdown.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                    dropdownMenu.classList.add('hidden');
+                }
+            });
+        }
+    </script>
 </body>
 </html>

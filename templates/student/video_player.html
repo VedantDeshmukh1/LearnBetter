@@ -277,6 +277,7 @@
             const videoTitle = videoItem.getAttribute('data-video-title');
             const videoDescription = videoItem.getAttribute('data-video-description');
             const videoDuration = videoItem.querySelector('.text-xs.text-gray-500').textContent;
+            const videoDate = videoItem.getAttribute('data-video-date') || '';
 
             document.getElementById('current-video-title').textContent = videoTitle;
             document.getElementById('current-video-description').textContent = videoDescription;

@@ -185,30 +185,6 @@ def profile():
     user_id = session['user_id']
     teacher_doc_ref = db.collection('teacher_details').document(user_id)
 
-    if request.method == 'POST':
-        # Update profile
-        data = request.form
-        update_data = {
-            'name': data.get('name'),
-            'email': data.get('email'),
-            'about': data.get('about'),
-            'educational_experience': data.get('educational_experience'),
-            'specialization': data.get('specialization'),
-            'teaching_experience': int(data.get('teaching_experience', 0)),
-            'website': data.get('website')
-        }
-        # Remove any None values
-        update_data = {k: v for k, v in update_data.items() if v is not None}
-        
-        try:
-            teacher_doc_ref.update(update_data)
-            flash('Profile updated successfully!', 'success')
-        except Exception as e:
-            flash(f'Error updating profile: {str(e)}', 'error')
-        
-        return redirect(url_for('teacher.profile'))
-
-    # GET request
     try:
         teacher_doc = teacher_doc_ref.get()
         
@@ -218,6 +194,28 @@ def profile():
         
         teacher_data = teacher_doc.to_dict()
         
+        if request.method == 'POST':
+            # Update profile
+            data = request.form
+            update_data = {
+                'about': data.get('about'),
+                'specialization': data.get('specialization'),
+                'teaching_experience': int(data.get('teaching_experience', 0)),
+                'website': data.get('website')
+            }
+            # Remove any None values
+            update_data = {k: v for k, v in update_data.items() if v is not None}
+            
+            try:
+                teacher_doc_ref.update(update_data)
+                flash('Profile updated successfully!', 'success')
+                # Update the local teacher_data with the new values
+                teacher_data.update(update_data)
+            except Exception as e:
+                flash(f'Error updating profile: {str(e)}', 'error')
+            
+            return redirect(url_for('teacher.profile'))
+
         # Calculate additional statistics
         courses_ref = db.collection('course_details').where('course_instructor_id', '==', user_id)
         courses = list(courses_ref.stream())
@@ -237,29 +235,16 @@ def profile():
             'average_rating': average_rating
         }
         
-        # Log the update data
-        print(f"Updating teacher profile with: {update_data}")
-        
         # Update teacher_details with the latest statistics
-        update_result = teacher_doc_ref.update(update_data)
-        
-        # Log the update result
-        print(f"Update result: {update_result}")
-        
-        # Fetch the document again to confirm changes
-        updated_teacher_doc = teacher_doc_ref.get()
-        updated_teacher_data = updated_teacher_doc.to_dict()
-        
-        # Log the updated document
-        print(f"Updated teacher data: {updated_teacher_data}")
+        teacher_doc_ref.update(update_data)
         
         # Update teacher_data with the latest statistics
         teacher_data.update(update_data)
         
         # Format fields for display
         teacher_data['teaching_experience'] = f"{teacher_data.get('teaching_experience', 0)} years"
-        teacher_data['total_revenue'] = f"${teacher_data['total_revenue']:.2f}"
-        teacher_data['average_rating'] = f"{teacher_data['average_rating']:.1f} / 5.0"
+        teacher_data['total_revenue'] = f"₹{teacher_data['total_revenue']:.2f}"
+        teacher_data['average_rating'] = f"{teacher_data['average_rating']:.1f}"
         
         return render_template('teacher/profile.html', teacher=teacher_data)
     except Exception as e:

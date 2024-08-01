@@ -72,6 +72,7 @@ def home():
                     course['progress'] = progress.get(course_id, {}).get('overall_progress', 0)
                     user_courses.append(course)
             
+            user_courses = sorted(user_courses, key=lambda x: x.get('progress', 0))
             courses = [course for course in courses if course['id'] not in purchased_course_ids]
     
     show_popular_courses = len(courses) > 0
@@ -88,8 +89,9 @@ def get_user_courses():
     student_doc = student_ref.get()
     
     if student_doc.exists:
-        purchased_course_ids = student_doc.to_dict().get('purchased_courses', [])
-        progress = student_doc.to_dict().get('progress', {})
+        student_data = student_doc.to_dict()
+        purchased_course_ids = student_data.get('purchased_courses', [])
+        progress = student_data.get('progress', {})
         user_courses = []
         for course_id in purchased_course_ids:
             course_doc = db.collection('course_details').document(course_id).get()
@@ -99,11 +101,15 @@ def get_user_courses():
                 course['progress'] = progress.get(course_id, {}).get('overall_progress', 0)
                 
                 # Get the thumbnail of the first video by sequence
-                sorted_videos = sorted(course['videos'].values(), key=lambda x: x['video_seq'])
+                sorted_videos = sorted(course.get('videos', {}).values(), key=lambda x: x['video_seq'])
                 first_video = sorted_videos[0] if sorted_videos else None
                 course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
                 
                 user_courses.append(course)
+        
+        # Sort courses by progress in ascending order
+        user_courses = sorted(user_courses, key=lambda x: x.get('progress', 0))
+        
         return jsonify(user_courses)
     else:
         return jsonify([])
@@ -247,6 +253,8 @@ def my_courses():
                 course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
                 
                 courses.append(course)
+        
+        courses = sorted(courses, key=lambda x: x.get('progress', 0))
     
     return render_template('student/my_courses.html', courses=courses)
 
@@ -360,7 +368,7 @@ def video_player(course_id, vid_seq=None):
         video_data['id'] = video_id
         video_data['description'] = video_data.get('description', 'No description available.')
         video_data['duration'] = video_data.get('duration', 'Duration not available')
-        video_data['date'] = video_data.get('date', 'Date not available')
+        video_data['date'] = video_data.get('date', '')
         
         # Handle both new and old data structures
         if isinstance(videos_completed.get(video_id), dict):
@@ -406,27 +414,33 @@ def profile():
     user_ref = db.collection('student_details').document(user_id)
     user_doc = user_ref.get()
 
-    if request.method == 'POST':
-        # Update user information
-        name = request.form['name']
-        
-        user_ref.update({
-            'name': name
-        })
-        
-        flash('Profile updated successfully', 'success')
-        return redirect(url_for('student.profile'))
-
     if user_doc.exists:
         user_data = user_doc.to_dict()
-        # Split the name into first and last name for display purposes
-        name_parts = user_data['name'].split(' ', 1)
-        user_data['first_name'] = name_parts[0]
-        user_data['last_name'] = name_parts[1] if len(name_parts) > 1 else ''
-        return render_template('student/profile.html', user=user_data)
+        user_data['total_progress'] = calculate_total_progress(user_data)
+        
+        # Fetch purchase history
+        purchase_history = []
+        for course_id in user_data.get('purchased_courses', []):
+            course_doc = db.collection('course_details').document(course_id).get()
+            if course_doc.exists:
+                course_data = course_doc.to_dict()
+                enrollment_date = course_data.get('enrollments', {}).get(user_id, {}).get('enrollment_date')
+                purchase_history.append({
+                    'course_name': course_data.get('course_name'),
+                    'purchase_date': enrollment_date.strftime('%B %d, %Y') if enrollment_date else 'N/A'
+                })
+        
+        return render_template('student/profile.html', user=user_data, purchase_history=purchase_history)
     else:
         flash('User not found', 'error')
         return redirect(url_for('student.home'))
+
+def calculate_total_progress(user_data):
+    progress_data = user_data.get('progress', {})
+    if not progress_data:
+        return None
+    total_progress = sum(course.get('overall_progress', 0) for course in progress_data.values())
+    return total_progress / len(progress_data) if progress_data else None
 
 @bp.route('/logout')
 def logout():
