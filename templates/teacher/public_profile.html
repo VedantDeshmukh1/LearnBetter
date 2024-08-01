@@ -24,8 +24,12 @@
                     <ul class="flex space-x-4">
                         <li><a href="{{ url_for('student.home') }}" class="text-gray-600 hover:text-blue-600">Home</a></li>
                         {% if 'user' in session %}
-                        <li><a href="{{ url_for('student.my_courses') }}" class="text-gray-600 hover:text-blue-600">My Courses</a></li>
-                        <li><a href="{{ url_for('student.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
+                        {% if session['user']['role'] == 'teacher' %}
+                            <li><a href="{{ url_for('teacher.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
+                        {% else %}
+                            <li><a href="{{ url_for('student.my_courses') }}" class="text-gray-600 hover:text-blue-600">My Courses</a></li>
+                            <li><a href="{{ url_for('student.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
+                        {% endif %}
                         {% endif %}
                     </ul>
                     <div class="relative inline-block">

@@ -137,8 +137,12 @@
                     <ul class="flex space-x-4">
                         <li><a href="{{ url_for('student.home') }}" class="text-gray-600 hover:text-blue-600">Home</a></li>
                         {% if 'user' in session %}
-                        <li><a href="{{ url_for('student.my_courses') }}" class="text-gray-600 hover:text-blue-600">My Courses</a></li>
-                        <li><a href="{{ url_for('student.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
+                            {% if session['user']['role'] == 'teacher' %}
+                                <li><a href="{{ url_for('teacher.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
+                            {% else %}
+                                <li><a href="{{ url_for('student.my_courses') }}" class="text-gray-600 hover:text-blue-600">My Courses</a></li>
+                                <li><a href="{{ url_for('student.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
+                            {% endif %}
                         {% endif %}
                     </ul>
                     <div class="relative inline-block">
@@ -147,8 +151,13 @@
                                 {{ session['user']['first_name'][0] }}
                             </a>
                             <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
-                                <a href="{{ url_for('student.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
-                                <a href="{{ url_for('student.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                                {% if session['user']['role'] == 'teacher' %}
+                                    <a href="{{ url_for('teacher.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                    <a href="{{ url_for('teacher.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                                {% else %}
+                                    <a href="{{ url_for('student.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                    <a href="{{ url_for('student.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                                {% endif %}
                             </div>
                         {% else %}
                             <a href="{{ url_for('student.login') }}" class="text-blue-600 hover:text-blue-800">Login</a>
@@ -187,7 +196,9 @@
                         </div>
                     {% endif %}
                     {% if 'user' in session %}
-                        {% if course.id in student_details.purchased_courses %}
+                        {% if session['user']['role'] == 'teacher' %}
+                            <button onclick="showTeacherInfo()" class="bg-gray-400 text-white px-4 py-2 rounded-md cursor-not-allowed">Purchase Course (₹{{ course.course_price }})</button>
+                        {% elif course.id in student_details.purchased_courses %}
                             <a href="{{ url_for('student.video_player', course_id=course.id) }}" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Go to Course</a>
                             {% if student_details.progress.get(course.id, {}).get('overall_progress', 0) == 100 %}
                                 {% if not user_rating %}
@@ -239,8 +250,14 @@
                             <p class="text-sm text-gray-600 mb-2">Duration: {{ video.duration }}</p>
                             <p class="text-sm text-gray-600 mb-4 line-clamp-3 flex-grow">{{ video.description }}</p>
                             <div class="mt-auto">
-                                {% if 'user' in session and course.id in student_details.purchased_courses %}
-                                    <a href="{{ url_for('student.video_player', course_id=course.id, vid_seq=video.video_seq) }}" class="block bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700 text-center">Watch Video</a>
+                                {% if 'user' in session %}
+                                    {% if session['user']['role'] == 'teacher' %}
+                                        <button onclick="showTeacherInfo()" class="w-full bg-gray-300 text-gray-700 px-3 py-1 rounded-md text-sm cursor-not-allowed text-center">Watch Video</button>
+                                    {% elif course.id in student_details.purchased_courses %}
+                                        <a href="{{ url_for('student.video_player', course_id=course.id, vid_seq=video.video_seq) }}" class="block bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700 text-center">Watch Video</a>
+                                    {% else %}
+                                        <button onclick="showPurchaseInfo()" class="w-full bg-gray-300 text-gray-700 px-3 py-1 rounded-md text-sm cursor-pointer text-center">Watch Video</button>
+                                    {% endif %}
                                 {% else %}
                                     <button onclick="showPurchaseInfo()" class="w-full bg-gray-300 text-gray-700 px-3 py-1 rounded-md text-sm cursor-pointer text-center">Watch Video</button>
                                 {% endif %}
@@ -404,6 +421,19 @@
                 <div class="bg-white p-6 rounded-lg shadow-xl max-w-md">
                     <h3 class="text-xl font-bold mb-4">Purchase Required</h3>
                     <p class="mb-4">Please purchase the course to watch this video.</p>
+                    <button onclick="this.closest('div.fixed').remove()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Close</button>
+                </div>
+            `;
+            document.body.appendChild(infoElement);
+        }
+
+        function showTeacherInfo() {
+            const infoElement = document.createElement('div');
+            infoElement.className = 'fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50';
+            infoElement.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-xl max-w-md">
+                    <h3 class="text-xl font-bold mb-4">Teacher Access Restricted</h3>
+                    <p class="mb-4">As a teacher, you are not allowed to purchase or watch courses created by other teachers.</p>
                     <button onclick="this.closest('div.fixed').remove()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Close</button>
                 </div>
             `;
