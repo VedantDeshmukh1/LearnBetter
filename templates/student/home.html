@@ -106,7 +106,6 @@
                     <img src="{{ course.thumbnail }}" alt="{{ course.course_name }}" class="w-full h-40 object-cover">
                     <div class="p-4">
                         <h3 class="font-semibold text-lg mb-1">{{ course.course_name }}</h3>
-                        <a href="/teacher/public_profile/{{ course.course_instructor_id }}" class="text-sm text-blue-600 hover:underline">{{ course.course_instructor }}</a>
                         {% if course.average_rating and course.total_ratings > 0 %}
                             <p class="text-sm text-gray-600">Rating: {{ course.average_rating|round(1) }}★ ({{ course.total_ratings }} reviews)</p>
                         {% endif %}

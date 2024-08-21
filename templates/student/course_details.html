@@ -177,14 +177,7 @@
                         <p class="text-gray-700 line-clamp-3" id="shortDescription">{{ course.course_description }}</p>
                         <button onclick="showFullDescription()" class="text-blue-600 hover:text-blue-800 mt-2">Read more</button>
                     </div>
-                    <div class="flex items-center mb-4">
-                        <i data-lucide="user" class="mr-2"></i>
-                        <span class="text-gray-700">Instructor: 
-                            <a href="{{ url_for('teacher.public_profile', teacher_id=course.course_instructor_id) }}" class="text-blue-600 hover:underline">
-                                {{ course.course_instructor }}
-                            </a>
-                        </span>
-                    </div>
+                    
                     <div class="flex items-center mb-4">
                         <i data-lucide="clock" class="mr-2"></i>
                         <span class="text-gray-700">Duration: {{ course.course_duration }} hours</span>
@@ -316,7 +309,6 @@
                         <img src="{{ related_course.thumbnail }}" alt="{{ related_course.course_name }}" class="w-full h-40 object-cover">
                         <div class="p-4">
                             <h3 class="font-semibold text-lg mb-1">{{ related_course.course_name }}</h3>
-                            <a href="{{ url_for('teacher.public_profile', teacher_id=related_course.course_instructor_id) }}" class="text-sm text-blue-600 hover:underline">{{ related_course.course_instructor }}</a>
                             {% if related_course.average_rating > 0 and related_course.total_ratings > 0 %}
                                 <p class="text-sm text-gray-600">Rating: {{ related_course.average_rating|round(1) }}★ ({{ related_course.total_ratings }} reviews)</p>
                             {% endif %}
