@@ -12,6 +12,9 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         .course-card {
@@ -19,11 +22,6 @@
         }
         .course-card:hover {
             transform: translateY(-5px);
-        }
-        body {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
         }
 
         main {
@@ -33,44 +31,95 @@
         footer {
             flex-shrink: 0;
         }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                padding: 1rem;
+            }
+            .search-container {
+                width: 100%;
+                margin: 1rem 0;
+            }
+            .user-menu {
+                width: 100%;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
-<body>
-    <header class="bg-white shadow-md">
-        <nav class="container mx-auto px-6 py-3">
-            <div class="flex justify-between items-center">
-                <a href="{{ url_for('student.home') }}" class="text-2xl font-bold text-blue-600">Magpie Learning</a>
-                <div class="flex items-center space-x-4">
-                    <ul class="flex space-x-4">
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <header class="bg-white shadow-md fixed w-full top-0 z-50">
+        <nav class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <!-- Logo -->
+                <div class="flex-shrink-0">
+                    <a href="{{ url_for('student.home') }}" class="text-2xl font-bold text-blue-600">
+                        Magpie Learning
+                    </a>
+                </div>
+
+                <!-- Center section with navigation -->
+                <div class="hidden md:flex flex-1 justify-end px-4">
+                    <ul class="flex space-x-8 items-center mr-8">
                         <li><a href="{{ url_for('student.home') }}" class="text-gray-600 hover:text-blue-600">Home</a></li>
                         <li><a href="#" class="text-blue-600 font-semibold">My Courses</a></li>
                         <li><a href="{{ url_for('student.dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a></li>
                     </ul>
-                    <div class="relative inline-block">
-                        <a href="#" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center" id="userDropdown">
-                            {{ session['user']['first_name'][0] }}
-                        </a>
-                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
+                </div>
+
+                <!-- Right section with profile -->
+                <div class="flex items-center">
+                    <div class="relative">
+                        <button id="userDropdown" class="flex items-center space-x-2">
+                            <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white">
+                                {{ session['user']['first_name'][0] }}
+                            </div>
+                        </button>
+                        <div id="dropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-50">
                             <a href="{{ url_for('student.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
                             <a href="{{ url_for('student.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
                         </div>
                     </div>
+
+                    <!-- Mobile menu button -->
+                    <div class="md:hidden ml-4">
+                        <button id="mobile-menu-button" class="text-gray-500 hover:text-gray-600">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile menu -->
+            <div id="mobile-menu" class="hidden md:hidden mt-4">
+                <div class="px-2 pt-2 pb-3 space-y-1">
+                    <a href="{{ url_for('student.home') }}" class="block px-3 py-2 text-gray-800 hover:text-blue-600">Home</a>
+                    <a href="#" class="block px-3 py-2 text-blue-600 font-semibold">My Courses</a>
+                    <a href="{{ url_for('student.dashboard') }}" class="block px-3 py-2 text-gray-800 hover:text-blue-600">Dashboard</a>
+                    <a href="{{ url_for('student.profile') }}" class="block px-3 py-2 text-gray-800 hover:text-blue-600">Profile</a>
+                    <a href="{{ url_for('student.logout') }}" class="block px-3 py-2 text-gray-800 hover:text-blue-600">Logout</a>
                 </div>
             </div>
         </nav>
     </header>
 
-    <main class="container mx-auto px-6 py-8">
+    <!-- Add this right after the header to prevent content from hiding behind fixed header -->
+    <div class="h-16"></div>
+
+    <main class="container mx-auto px-4 md:px-6 py-8">
         <h1 class="text-3xl font-bold mb-8">My Courses</h1>
 
         {% if courses %}
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {% for course in courses %}
                 <div class="course-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200">
                     <a href="{{ url_for('student.course_details', course_id=course.id) }}" class="block">
                         <img src="{{ course.thumbnail }}" alt="{{ course.course_name }}" class="w-full h-40 object-cover">
                         <div class="p-4">
-                            <h2 class="font-semibold text-lg mb-2">{{ course.course_name }}</h2>
+                            <h2 class="font-semibold text-lg mb-2 line-clamp-2">{{ course.course_name }}</h2>
                             <p class="text-sm text-gray-600 mb-2">Instructor: {{ course.course_instructor }}</p>
                             <div class="mb-2">
                                 <div class="w-full bg-gray-200 rounded-full h-2.5">
@@ -81,38 +130,61 @@
                         </div>
                     </a>
                     <div class="px-4 pb-4">
-                        <a href="{{ url_for('student.video_player', course_id=course.id) }}" class="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300">Continue Learning</a>
+                        <a href="{{ url_for('student.video_player', course_id=course.id) }}" 
+                           class="inline-block w-full text-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300">
+                            Continue Learning
+                        </a>
                     </div>
                 </div>
             {% endfor %}
             </div>
         {% else %}
-            <p class="text-xl text-gray-600 text-center">You haven't enrolled in any courses yet.</p>
+            <div class="text-center py-12">
+                <p class="text-xl text-gray-600 mb-6">You haven't enrolled in any courses yet.</p>
+                <a href="{{ url_for('student.home') }}" 
+                   class="inline-block bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition duration-300">
+                    Browse Courses
+                </a>
+            </div>
         {% endif %}
     </main>
 
     <footer class="bg-gray-800 bg-opacity-90 text-white py-4">
-        <div class="container mx-auto px-6 text-center">
+        <div class="container mx-auto px-4 md:px-6 text-center">
             <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
         </div>
     </footer>
 
     <script>
+        // Initialize Lucide icons
         lucide.createIcons();
 
+        // User dropdown functionality
         const userDropdown = document.getElementById('userDropdown');
         const dropdownMenu = document.getElementById('dropdownMenu');
 
-        userDropdown.addEventListener('click', function(event) {
-            event.stopPropagation();
-            dropdownMenu.classList.toggle('hidden');
-        });
+        if (userDropdown && dropdownMenu) {
+            userDropdown.addEventListener('click', function(event) {
+                event.stopPropagation();
+                dropdownMenu.classList.toggle('hidden');
+            });
 
-        document.addEventListener('click', function(event) {
-            if (!userDropdown.contains(event.target) && !dropdownMenu.contains(event.target)) {
-                dropdownMenu.classList.add('hidden');
-            }
-        });
+            document.addEventListener('click', function(event) {
+                if (!userDropdown.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                    dropdownMenu.classList.add('hidden');
+                }
+            });
+        }
+
+        // Mobile menu functionality
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
     </script>
 </body>
 </html>
