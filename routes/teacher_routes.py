@@ -342,18 +342,17 @@ def dashboard():
 def add_course():
     if request.method == 'POST':
         course_name = request.form['course_name']
-        course_price = float(request.form['course_price'])
-        course_description = request.form['course_description']  # New field
+        course_description = request.form['course_description']
         
         if not validate_name(course_name):
             flash('Course name must be at least 2 characters long', 'error')
             return render_template('teacher/add_course.html')
-        
+
+        # Create course with price set to 0
         course_data = {
             'course_name': course_name,
-            'course_duration': 0,
-            'course_price': course_price,
-            'course_description': course_description,  # New field
+            'course_description': course_description,
+            'course_price': 0,  # Set price to 0
             'course_instructor': f"{session['user']['first_name']} {session['user']['last_name']}",
             'course_instructor_id': session['user_id'],
             'videos': {},

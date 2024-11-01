@@ -40,6 +40,19 @@
             top: 1px;
             left: 0.7px;
         }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            flex: 1 0 auto;
+        }
+
+        footer {
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
@@ -171,6 +184,12 @@
             </div>
         </div>
     </main>
+
+    <footer class="bg-gray-800 bg-opacity-90 text-white py-4">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
+        </div>
+    </footer>
 
     <script>
         // Initialize Lucide icons

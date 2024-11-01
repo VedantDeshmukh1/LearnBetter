@@ -13,6 +13,19 @@
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
         }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            flex: 1 0 auto;
+        }
+
+        footer {
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -53,10 +66,6 @@
                                     <input type="text" id="course_name" name="course_name" required placeholder="e.g. Data Structures and Algorithms" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                                 </div>
                                 <div>
-                                    <label for="course_price" class="block text-sm font-medium text-gray-700">Course Price (₹):</label>
-                                    <input type="number" id="course_price" name="course_price" step="0.01" required placeholder="e.g. 1999" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                                </div>
-                                <div>
                                     <label for="course_description" class="block text-sm font-medium text-gray-700">Course Description:</label>
                                     <textarea id="course_description" name="course_description" rows="4" required placeholder="Provide a brief description of your course" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
                                 </div>
@@ -85,6 +94,12 @@
             </div>
         </div>
     </main>
+
+    <footer class="bg-gray-800 bg-opacity-90 text-white py-4">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
+        </div>
+    </footer>
 
     <script>
         // Initialize Lucide icons

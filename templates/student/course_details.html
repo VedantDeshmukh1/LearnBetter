@@ -190,7 +190,7 @@
                     {% endif %}
                     {% if 'user' in session %}
                         {% if session['user']['role'] == 'teacher' %}
-                            <button onclick="showTeacherInfo()" class="bg-gray-400 text-white px-4 py-2 rounded-md cursor-not-allowed">Purchase Course (₹{{ course.course_price }})</button>
+                            <button onclick="showTeacherInfo()" class="bg-gray-400 text-white px-4 py-2 rounded-md cursor-not-allowed">Enroll in Course</button>
                         {% elif course.id in student_details.purchased_courses %}
                             <a href="{{ url_for('student.video_player', course_id=course.id) }}" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Go to Course</a>
                             {% if student_details.progress.get(course.id, {}).get('overall_progress', 0) == 100 %}
@@ -205,11 +205,11 @@
                             {% endif %}
                         {% else %}
                             <form action="{{ url_for('student.purchase_course', course_id=course.id) }}" method="POST">
-                                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Purchase Course (₹{{ course.course_price }})</button>
+                                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Enroll in Course</button>
                             </form>
                         {% endif %}
                     {% else %}
-                        <a href="{{ url_for('student.login') }}" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Login to Purchase</a>
+                        <a href="{{ url_for('student.login') }}" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Login to Enroll</a>
                     {% endif %}
                 </div>
                 <div class="md:w-1/2 mt-6 md:mt-0">
@@ -314,7 +314,6 @@
                             {% endif %}
                             <p class="text-sm text-gray-600">Duration: {{ related_course.course_duration }} hours</p>
                             <p class="text-sm text-gray-600">Enrollments: {{ related_course.total_enrollments }}</p>
-                            <p class="text-sm font-bold mt-2">₹{{ related_course.course_price }}</p>
                         </div>
                     </a>
                 </div>
@@ -329,49 +328,9 @@
         </div>
     </main>
 
-    <footer class="bg-gray-800 text-white mt-12">
-        <div class="container mx-auto px-6 py-8">
-            <div class="flex flex-wrap justify-between">
-                <div class="w-full md:w-1/4 mb-6 md:mb-0">
-                    <h3 class="text-lg font-semibold mb-4">Magpie Learning</h3>
-                    <ul>
-                        <li><a href="#" class="hover:text-blue-400">About</a></li>
-                        <li><a href="#" class="hover:text-blue-400">What We Offer</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Leadership</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Careers</a></li>
-                    </ul>
-                </div>
-                <div class="w-full md:w-1/4 mb-6 md:mb-0">
-                    <h3 class="text-lg font-semibold mb-4">Community</h3>
-                    <ul>
-                        <li><a href="#" class="hover:text-blue-400">Learners</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Partners</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Developers</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Beta Testers</a></li>
-                    </ul>
-                </div>
-                <div class="w-full md:w-1/4 mb-6 md:mb-0">
-                    <h3 class="text-lg font-semibold mb-4">Connect</h3>
-                    <ul>
-                        <li><a href="#" class="hover:text-blue-400">Blog</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Tech Blog</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Teaching Center</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="w-full md:w-1/4">
-                    <h3 class="text-lg font-semibold mb-4">Legal</h3>
-                    <ul>
-                        <li><a href="#" class="hover:text-blue-400">Terms of Use</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Privacy Policy</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Cookie Policy</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Accessibility</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="mt-8 text-center">
-                <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
-            </div>
+    <footer class="bg-gray-800 bg-opacity-90 text-white py-4">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
         </div>
     </footer>
 
@@ -411,8 +370,8 @@
             infoElement.className = 'fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50';
             infoElement.innerHTML = `
                 <div class="bg-white p-6 rounded-lg shadow-xl max-w-md">
-                    <h3 class="text-xl font-bold mb-4">Purchase Required</h3>
-                    <p class="mb-4">Please purchase the course to watch this video.</p>
+                    <h3 class="text-xl font-bold mb-4">Enrollment Required</h3>
+                    <p class="mb-4">Please enroll in the course to watch this video.</p>
                     <button onclick="this.closest('div.fixed').remove()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Close</button>
                 </div>
             `;

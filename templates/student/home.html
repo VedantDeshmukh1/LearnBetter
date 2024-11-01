@@ -22,6 +22,19 @@
         .hidden {
             display: none;
         }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            flex: 1 0 auto;
+        }
+
+        footer {
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -110,7 +123,6 @@
                             <p class="text-sm text-gray-600">Rating: {{ course.average_rating|round(1) }}★ ({{ course.total_ratings }} reviews)</p>
                         {% endif %}
                         <p class="text-sm text-gray-600">Duration: {{ course.course_duration }} hours</p>
-                        <p class="text-sm font-bold mt-2">₹{{ course.course_price }}</p>
                     </div>
                 </a>
             </div>
@@ -125,49 +137,9 @@
         {% endif %}
     </main>
 
-    <footer class="bg-gray-800 text-white mt-12">
-        <div class="container mx-auto px-6 py-8">
-            <div class="flex flex-wrap justify-between">
-                <div class="w-full md:w-1/4 mb-6 md:mb-0">
-                    <h3 class="text-lg font-semibold mb-4">Magpie Learning</h3>
-                    <ul>
-                        <li><a href="#" class="hover:text-blue-400">About</a></li>
-                        <li><a href="#" class="hover:text-blue-400">What We Offer</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Leadership</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Careers</a></li>
-                    </ul>
-                </div>
-                <div class="w-full md:w-1/4 mb-6 md:mb-0">
-                    <h3 class="text-lg font-semibold mb-4">Community</h3>
-                    <ul>
-                        <li><a href="#" class="hover:text-blue-400">Learners</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Partners</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Developers</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Beta Testers</a></li>
-                    </ul>
-                </div>
-                <div class="w-full md:w-1/4 mb-6 md:mb-0">
-                    <h3 class="text-lg font-semibold mb-4">Connect</h3>
-                    <ul>
-                        <li><a href="#" class="hover:text-blue-400">Blog</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Tech Blog</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Teaching Center</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="w-full md:w-1/4">
-                    <h3 class="text-lg font-semibold mb-4">Legal</h3>
-                    <ul>
-                        <li><a href="#" class="hover:text-blue-400">Terms of Use</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Privacy Policy</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Cookie Policy</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Accessibility</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="mt-8 text-center">
-                <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
-            </div>
+    <footer class="bg-gray-800 bg-opacity-90 text-white py-4">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
         </div>
     </footer>
 
@@ -193,16 +165,14 @@
                     const courseCard = document.createElement('div');
                     courseCard.className = 'course-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200';
                     courseCard.innerHTML = `
-                        <a href="{{ url_for('student.course_details', course_id='') }}${course.id}">
+                        <a href="/student/course/${course.id}">
                             <img src="${course.thumbnail}" alt="${course.course_name}" class="w-full h-40 object-cover">
                             <div class="p-4">
                                 <h3 class="font-semibold text-lg mb-1">${course.course_name}</h3>
-                                <a href="{{ url_for('teacher.public_profile', teacher_id='') }}${course.course_instructor_id}" class="text-sm text-blue-600 hover:underline">${course.course_instructor}</a>
                                 ${course.average_rating && course.total_ratings > 0 ? 
                                     `<p class="text-sm text-gray-600">Rating: ${course.average_rating.toFixed(1)}★ (${course.total_ratings} reviews)</p>` : 
                                     ''}
                                 <p class="text-sm text-gray-600">Duration: ${course.course_duration} hours</p>
-                                <p class="text-sm font-bold mt-2">₹${course.course_price}</p>
                             </div>
                         </a>
                     `;

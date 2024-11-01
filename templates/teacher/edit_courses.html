@@ -13,6 +13,19 @@
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
         }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            flex: 1 0 auto;
+        }
+
+        footer {
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -49,7 +62,6 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Name</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrolled Students</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
@@ -59,7 +71,6 @@
                             <td class="px-6 py-4 whitespace-nowrap">{{ course.course_name }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">{{ course.total_enrollments or 0 }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">{{ course.average_rating|round(1) if course.average_rating else 'N/A' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">₹{{ course.total_revenue or 0 }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <a href="{{ url_for('teacher.edit_course', course_id=course.id) }}" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded mr-2">Edit</a>
                                 <a href="{{ url_for('teacher.view_course', course_id=course.id) }}" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded">View</a>
@@ -71,6 +82,12 @@
             </div>
         </div>
     </main>
+
+    <footer class="bg-gray-800 bg-opacity-90 text-white py-4">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
+        </div>
+    </footer>
 
     <script>
         // Initialize Lucide icons
