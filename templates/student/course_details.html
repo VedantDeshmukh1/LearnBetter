@@ -126,6 +126,57 @@
         .scroll-btn-right {
             right: -20px;
         }
+
+        @media (max-width: 768px) {
+            .course-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            .course-actions {
+                width: 100%;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+            .course-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .nav-menu {
+                display: none;
+            }
+            .mobile-menu {
+                display: block;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .course-stats {
+                grid-template-columns: 1fr;
+            }
+            .related-courses {
+                grid-template-columns: 1fr;
+            }
+            .course-card {
+                margin: 0.5rem;
+                padding: 1rem;
+            }
+        }
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                padding: 1rem;
+            }
+            .search-container {
+                width: 100%;
+                margin: 1rem 0;
+            }
+            .user-menu {
+                width: 100%;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -213,20 +264,22 @@
                     {% endif %}
                 </div>
                 <div class="md:w-1/2 mt-6 md:mt-0">
-                    <div class="video-container">
-                        {% if course.sorted_videos %}
-                            {% set preview_video = course.sorted_videos[0] %}
-                            {% set video_id = preview_video.url.split('/')[-2] %}
-                            <iframe src="https://drive.google.com/file/d/{{ video_id }}/preview"
-                                    frameborder="0"
-                                    allowfullscreen
-                                    sandbox="allow-scripts allow-same-origin"
-                                    class="rounded-lg shadow-lg">
-                            </iframe>
-                            <div class="watermark">{{ course.course_name }}@Magpie Learning</div>
-                        {% else %}
-                            <p class="text-gray-600">No preview video available</p>
-                        {% endif %}
+                    <div class="video-container relative w-full max-w-full overflow-hidden rounded-lg">
+                        <div class="aspect-w-16 aspect-h-9">
+                            {% if course.sorted_videos %}
+                                {% set preview_video = course.sorted_videos[0] %}
+                                {% set video_id = preview_video.url.split('/')[-2] %}
+                                <iframe src="https://drive.google.com/file/d/{{ video_id }}/preview"
+                                        frameborder="0"
+                                        allowfullscreen
+                                        sandbox="allow-scripts allow-same-origin"
+                                        class="rounded-lg shadow-lg">
+                                </iframe>
+                                <div class="watermark">{{ course.course_name }}@Magpie Learning</div>
+                            {% else %}
+                                <p class="text-gray-600">No preview video available</p>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -329,8 +382,26 @@
     </main>
 
     <footer class="bg-gray-800 bg-opacity-90 text-white py-4">
-        <div class="container mx-auto px-6 text-center">
-            <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-4">
+                <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
+            </div>
+            <div class="flex justify-center items-center space-x-8">
+                <div class="text-center">
+                    <p class="text-sm">Made by</p>
+                    <div class="flex items-center space-x-2">
+                        <a href="https://www.linkedin.com/in/vedant-deshmukh-173607264/" 
+                           class="text-blue-400 hover:text-blue-300 transition-colors"
+                           target="_blank"
+                           rel="noopener noreferrer">Vedant Deshmukh</a>
+                        <span>&</span>
+                        <a href="https://www.linkedin.com/in/kan-arya/" 
+                           class="text-blue-400 hover:text-blue-300 transition-colors"
+                           target="_blank"
+                           rel="noopener noreferrer">Kanishk Arya</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </footer>
 
@@ -477,6 +548,23 @@
         // Hide full description popup
         function hideFullDescription() {
             document.getElementById('descriptionPopup').classList.add('hidden');
+        }
+
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            // Close mobile menu when clicking outside
+            document.addEventListener('click', (event) => {
+                if (!mobileMenuButton.contains(event.target) && !mobileMenu.contains(event.target)) {
+                    mobileMenu.classList.add('hidden');
+                }
+            });
         }
     </script>
 </body>

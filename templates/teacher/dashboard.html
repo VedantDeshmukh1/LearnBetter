@@ -27,24 +27,67 @@
         footer {
             flex-shrink: 0;
         }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                padding: 1rem;
+            }
+            .nav-links {
+                display: none;
+                width: 100%;
+                margin-top: 1rem;
+            }
+            .nav-links.active {
+                display: flex;
+                flex-direction: column;
+            }
+            .mobile-menu-button {
+                display: block;
+            }
+        }
+        @media (min-width: 769px) {
+            .mobile-menu-button {
+                display: none;
+            }
+            .nav-links {
+                display: flex !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100">
     <header class="bg-white shadow-md">
-        <nav class="container mx-auto px-6 py-3">
-            <div class="flex justify-between items-center">
-                <a href="{{ url_for('teacher.dashboard') }}" class="text-2xl font-bold text-blue-600">Magpie Learning</a>
-                <div class="flex items-center space-x-4">
-                    <a href="{{ url_for('teacher.add_course') }}" class="text-gray-600 hover:text-blue-600">Create Courses</a>
-                    <a href="{{ url_for('teacher.edit_courses') }}" class="text-gray-600 hover:text-blue-600">Edit Courses</a>
-                    <a href="#" class="text-blue-600 font-semibold">Dashboard</a>
-                    <div class="relative inline-block">
-                        <div class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center cursor-pointer" id="userDropdown">
-                            {{ session['user']['first_name'][0] }}
-                        </div>
-                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
-                            <a href="{{ url_for('teacher.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
-                            <a href="{{ url_for('teacher.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+        <nav class="container mx-auto px-4 sm:px-6 py-3">
+            <div class="flex flex-wrap items-center justify-between">
+                <!-- Logo -->
+                <a href="{{ url_for('teacher.dashboard') }}" class="text-2xl font-bold text-blue-600">
+                    Magpie Learning
+                </a>
+
+                <!-- Mobile menu button -->
+                <button id="mobile-menu-button" class="md:hidden p-2 rounded-md hover:bg-gray-100">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+
+                <!-- Navigation Links -->
+                <div id="nav-links" class="hidden md:flex md:items-center w-full md:w-auto mt-4 md:mt-0">
+                    <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+                        <a href="{{ url_for('teacher.add_course') }}" class="text-gray-600 hover:text-blue-600">Create Courses</a>
+                        <a href="{{ url_for('teacher.edit_courses') }}" class="text-gray-600 hover:text-blue-600">Edit Courses</a>
+                        <a href="#" class="text-blue-600 font-semibold">Dashboard</a>
+                        
+                        <!-- User Dropdown -->
+                        <div class="relative inline-block">
+                            <div class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center cursor-pointer" id="userDropdown">
+                                {{ session['user']['first_name'][0] }}
+                            </div>
+                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
+                                <a href="{{ url_for('teacher.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                <a href="{{ url_for('teacher.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -118,8 +161,26 @@
     </main>
 
     <footer class="bg-gray-800 bg-opacity-90 text-white py-4">
-        <div class="container mx-auto px-6 text-center">
-            <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-4">
+                <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
+            </div>
+            <div class="flex justify-center items-center space-x-8">
+                <div class="text-center">
+                    <p class="text-sm">Made by</p>
+                    <div class="flex items-center space-x-2">
+                        <a href="https://www.linkedin.com/in/vedant-deshmukh-173607264/" 
+                           class="text-blue-400 hover:text-blue-300 transition-colors"
+                           target="_blank"
+                           rel="noopener noreferrer">Vedant Deshmukh</a>
+                        <span>&</span>
+                        <a href="https://www.linkedin.com/in/kan-arya/" 
+                           class="text-blue-400 hover:text-blue-300 transition-colors"
+                           target="_blank"
+                           rel="noopener noreferrer">Kanishk Arya</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </footer>
 
@@ -213,6 +274,29 @@
                         intersect: false,
                     }
                 }
+            }
+        });
+
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const navLinks = document.getElementById('nav-links');
+
+        mobileMenuButton.addEventListener('click', () => {
+            navLinks.classList.toggle('hidden');
+        });
+
+        // Close mobile menu when window is resized above mobile breakpoint
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                navLinks.classList.add('hidden');
+            }
+        });
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', (event) => {
+            const isClickInsideNav = navLinks.contains(event.target) || mobileMenuButton.contains(event.target);
+            if (!isClickInsideNav && window.innerWidth < 768) {
+                navLinks.classList.add('hidden');
             }
         });
     </script>
