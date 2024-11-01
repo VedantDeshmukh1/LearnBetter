@@ -24,15 +24,16 @@ def student_required(f):
 def home():
     print("Session data:", session)  # Debug print
     courses = []
-    course_docs = db.collection('course_details').order_by('total_enrollments', direction=firestore.Query.DESCENDING).limit(8).stream()
+    course_docs = db.collection('course_details').limit(8).stream()
     for doc in course_docs:
         course = doc.to_dict()
         course['id'] = doc.id
         
         # Get the thumbnail of the first video by sequence
-        sorted_videos = sorted(course['videos'].values(), key=lambda x: x['video_seq'])
+        videos = course.get('videos', {})
+        sorted_videos = sorted(videos.values(), key=lambda x: x.get('video_seq', 0)) if videos else []
         first_video = sorted_videos[0] if sorted_videos else None
-        course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
+        course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.png')
         
         # Calculate average rating and total ratings
         ratings = course.get('ratings', {})
@@ -40,8 +41,12 @@ def home():
             course['average_rating'] = sum(r['rating'] for r in ratings.values()) / len(ratings)
             course['total_ratings'] = len(ratings)
         else:
-            course['average_rating'] = None
+            course['average_rating'] = 0
             course['total_ratings'] = 0
+        
+        # Set default values for missing fields
+        course['total_enrollments'] = len(course.get('enrollments', {}))
+        course['course_duration'] = course.get('course_duration', 0)
         
         courses.append(course)
     
@@ -64,8 +69,7 @@ def home():
                     course = course_doc.to_dict()
                     course['id'] = course_doc.id
                     
-                    # Get the thumbnail of the first video by sequence
-                    sorted_videos = sorted(course['videos'].values(), key=lambda x: x['video_seq'])
+                    sorted_videos = sorted(course.get('videos', {}).values(), key=lambda x: x.get('video_seq', 0))
                     first_video = sorted_videos[0] if sorted_videos else None
                     course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
                     
@@ -73,11 +77,16 @@ def home():
                     user_courses.append(course)
             
             user_courses = sorted(user_courses, key=lambda x: x.get('progress', 0))
-            courses = [course for course in courses if course['id'] not in purchased_course_ids]
     
-    show_popular_courses = len(courses) > 0
+    # Show all courses except purchased ones
+    courses = [course for course in courses if course['id'] not in purchased_course_ids]
+    show_popular_courses = True  # Always show courses section
     
-    return render_template('student/home.html', courses=courses, user_courses=user_courses, show_more_button=show_more_button, show_popular_courses=show_popular_courses)
+    return render_template('student/home.html', 
+                         courses=courses, 
+                         user_courses=user_courses, 
+                         show_more_button=show_more_button, 
+                         show_popular_courses=show_popular_courses)
 
 @bp.route('/get_user_courses')
 def get_user_courses():

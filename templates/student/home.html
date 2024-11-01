@@ -22,84 +22,171 @@
         .hidden {
             display: none;
         }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        main {
+            flex: 1 0 auto;
+        }
+        footer {
+            flex-shrink: 0;
+        }
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                padding: 1rem;
+            }
+            .search-container {
+                width: 100%;
+                margin: 1rem 0;
+            }
+            .user-menu {
+                width: 100%;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
-    <header class="bg-white shadow-md">
-        <nav class="container mx-auto px-6 py-3">
-            <div class="flex justify-between items-center">
-                <a href="{{ url_for('student.home') }}" class="text-2xl font-bold text-blue-600">Magpie Learning</a>
-                <div class="flex space-x-4 items-center">
-                    <div class="relative">
-                        <input type="text" id="search-input" placeholder="Search courses or instructors" class="border rounded-md px-3 py-1 w-64 pr-8">
-                        <button id="clear-search" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+    <header class="bg-white shadow-md fixed w-full top-0 z-50">
+        <nav class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <!-- Logo -->
+                <div class="flex-shrink-0">
+                    <a href="{{ url_for('student.home') }}" class="text-2xl font-bold text-blue-600">
+                        Magpie Learning
+                    </a>
+                </div>
+
+                <!-- Center section with search -->
+                <div class="hidden md:flex flex-1 justify-center px-4 max-w-xl">
+                    <div class="relative w-full">
+                        <input type="text" 
+                               id="search-input" 
+                               placeholder="Search courses or instructors" 
+                               class="w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button id="clear-search" 
+                                class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
                             </svg>
                         </button>
+                        <div id="search-results" class="absolute w-full mt-1 bg-white rounded-md shadow-lg hidden z-50">
+                            <!-- Search results will be populated here -->
+                        </div>
                     </div>
+                </div>
+
+                <!-- Right section -->
+                <div class="flex items-center space-x-8">
                     {% if 'user' in session %}
                         {% if session['user']['role'] == 'teacher' %}
                             <a href="{{ url_for('teacher.dashboard') }}" class="text-gray-800 hover:text-blue-600">Dashboard</a>
-                            <div class="relative inline-block">
-                                <a href="#" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center" id="userDropdown">
-                                    {{ session['user']['first_name'][0] }}
-                                </a>
-                                <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
+                            <div class="relative">
+                                <button id="userDropdown" class="flex items-center space-x-2">
+                                    <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white">
+                                        {{ session['user']['first_name'][0] }}
+                                    </div>
+                                </button>
+                                <div id="dropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-50">
                                     <a href="{{ url_for('teacher.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
                                     <a href="{{ url_for('teacher.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
                                 </div>
                             </div>
                         {% else %}
                             <a href="{{ url_for('student.my_courses') }}" class="text-gray-800 hover:text-blue-600">My Learning</a>
-                            <div class="relative inline-block">
-                                <a href="#" class="w-8 h-8 bg-blue-600 rounded-full text-white flex items-center justify-center" id="userDropdown">
-                                    {{ session['user']['first_name'][0] }}
-                                </a>
-                                <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10" id="dropdownMenu">
+                            <div class="relative">
+                                <button id="userDropdown" class="flex items-center space-x-2">
+                                    <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white">
+                                        {{ session['user']['first_name'][0] }}
+                                    </div>
+                                </button>
+                                <div id="dropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-50">
                                     <a href="{{ url_for('student.dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dashboard</a>
                                     <a href="{{ url_for('student.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
                                 </div>
                             </div>
                         {% endif %}
                     {% else %}
-                        <a href="{{ url_for('student.login') }}" class="text-gray-800 hover:text-blue-600">Login</a>
-                        <a href="{{ url_for('teacher.login') }}" class="text-gray-800 hover:text-blue-600">Teacher Login</a>
+                        <div class="flex items-center space-x-4">
+                            <a href="{{ url_for('student.login') }}" class="text-gray-800 hover:text-blue-600">Login</a>
+                            <a href="{{ url_for('teacher.login') }}" class="text-gray-800 hover:text-blue-600">Teacher Login</a>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Mobile menu button -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-button" class="text-gray-500 hover:text-gray-600">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile menu -->
+            <div id="mobile-menu" class="hidden md:hidden mt-4">
+                <div class="px-2 pt-2 pb-3 space-y-1">
+                    <div class="mb-4">
+                        <input type="text" 
+                               id="mobile-search-input" 
+                               placeholder="Search courses or instructors" 
+                               class="w-full border rounded-md px-3 py-2">
+                    </div>
+                    {% if 'user' in session %}
+                        {% if session['user']['role'] == 'teacher' %}
+                            <a href="{{ url_for('teacher.dashboard') }}" class="block px-3 py-2 text-gray-800 hover:text-blue-600">Dashboard</a>
+                            <a href="{{ url_for('teacher.profile') }}" class="block px-3 py-2 text-gray-800 hover:text-blue-600">Profile</a>
+                            <a href="{{ url_for('teacher.logout') }}" class="block px-3 py-2 text-gray-800 hover:text-blue-600">Logout</a>
+                        {% else %}
+                            <a href="{{ url_for('student.my_courses') }}" class="block px-3 py-2 text-gray-800 hover:text-blue-600">My Learning</a>
+                            <a href="{{ url_for('student.dashboard') }}" class="block px-3 py-2 text-gray-800 hover:text-blue-600">Dashboard</a>
+                            <a href="{{ url_for('student.logout') }}" class="block px-3 py-2 text-gray-800 hover:text-blue-600">Logout</a>
+                        {% endif %}
+                    {% else %}
+                        <a href="{{ url_for('student.login') }}" class="block px-3 py-2 text-gray-800 hover:text-blue-600">Login</a>
+                        <a href="{{ url_for('teacher.login') }}" class="block px-3 py-2 text-gray-800 hover:text-blue-600">Teacher Login</a>
                     {% endif %}
                 </div>
             </div>
         </nav>
     </header>
 
-    <div class="bg-blue-600 text-white py-16 animate-fade-in">
-        <div class="container mx-auto px-6 text-center">
-            <h1 class="text-4xl font-bold mb-4">Welcome to Magpie Learning</h1>
-            <p class="text-xl mb-8">Discover a world of knowledge at your fingertips</p>
+    <!-- Add this right after the header to prevent content from hiding behind fixed header -->
+    <div class="h-16"></div>
+
+    <div class="bg-blue-600 text-white py-8 md:py-16 animate-fade-in">
+        <div class="container mx-auto px-4 md:px-6 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold mb-4">Welcome to Magpie Learning</h1>
+            <p class="text-lg md:text-xl mb-8">Discover a world of knowledge at your fingertips</p>
             <button id="about-us-btn" class="bg-white text-blue-600 px-6 py-3 rounded-full font-semibold hover:bg-blue-100 transition duration-300">About Us</button>
         </div>
     </div>
 
     <div id="about-us" class="bg-gray-100 py-8 hidden">
-        <div class="container mx-auto px-6">
-            <h2 class="text-3xl font-bold mb-4">About Us</h2>
-            <p class="text-lg mb-4">Magpie Learning is dedicated to providing high-quality online education to learners around the world. Our platform connects passionate instructors with eager students, fostering a community of lifelong learners.</p>
-            <p class="text-lg">With a wide range of courses spanning various disciplines, we strive to make education accessible, engaging, and transformative for everyone.</p>
+        <div class="container mx-auto px-4 md:px-6">
+            <h2 class="text-2xl md:text-3xl font-bold mb-4">About Us</h2>
+            <p class="text-base md:text-lg mb-4">Magpie Learning is dedicated to providing high-quality online education to learners around the world. Our platform connects passionate instructors with eager students, fostering a community of lifelong learners.</p>
+            <p class="text-base md:text-lg">With a wide range of courses spanning various disciplines, we strive to make education accessible, engaging, and transformative for everyone.</p>
         </div>
     </div>
 
-    <main class="container mx-auto px-6 py-8 flex-grow">
+    <main class="container mx-auto px-4 md:px-6 py-8 flex-grow">
         {% if 'user' in session and user_courses %}
-        <h2 class="text-2xl font-bold mb-6">Resume Your Courses</h2>
-        <div class="overflow-x-auto mb-12">
-            <div id="user-courses" class="flex space-x-6">
+        <h2 class="text-xl md:text-2xl font-bold mb-6">Resume Your Courses</h2>
+        <div class="relative overflow-x-auto mb-12">
+            <div id="user-courses" class="flex space-x-6 pb-4 scrollbar-hide">
                 <!-- User courses will be populated here -->
             </div>
         </div>
         {% endif %}
 
         {% if show_popular_courses %}
-        <h2 class="text-2xl font-bold mb-6">Most Popular Courses</h2>
-        <div id="popular-courses" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+        <h2 class="text-xl md:text-2xl font-bold mb-6">Most Popular Courses</h2>
+        <div id="popular-courses" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
             {% for course in courses %}
             <div class="course-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200">
                 <a href="{{ url_for('student.course_details', course_id=course.id) }}">
@@ -110,7 +197,6 @@
                             <p class="text-sm text-gray-600">Rating: {{ course.average_rating|round(1) }}★ ({{ course.total_ratings }} reviews)</p>
                         {% endif %}
                         <p class="text-sm text-gray-600">Duration: {{ course.course_duration }} hours</p>
-                        <p class="text-sm font-bold mt-2">₹{{ course.course_price }}</p>
                     </div>
                 </a>
             </div>
@@ -125,53 +211,14 @@
         {% endif %}
     </main>
 
-    <footer class="bg-gray-800 text-white mt-12">
-        <div class="container mx-auto px-6 py-8">
-            <div class="flex flex-wrap justify-between">
-                <div class="w-full md:w-1/4 mb-6 md:mb-0">
-                    <h3 class="text-lg font-semibold mb-4">Magpie Learning</h3>
-                    <ul>
-                        <li><a href="#" class="hover:text-blue-400">About</a></li>
-                        <li><a href="#" class="hover:text-blue-400">What We Offer</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Leadership</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Careers</a></li>
-                    </ul>
-                </div>
-                <div class="w-full md:w-1/4 mb-6 md:mb-0">
-                    <h3 class="text-lg font-semibold mb-4">Community</h3>
-                    <ul>
-                        <li><a href="#" class="hover:text-blue-400">Learners</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Partners</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Developers</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Beta Testers</a></li>
-                    </ul>
-                </div>
-                <div class="w-full md:w-1/4 mb-6 md:mb-0">
-                    <h3 class="text-lg font-semibold mb-4">Connect</h3>
-                    <ul>
-                        <li><a href="#" class="hover:text-blue-400">Blog</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Tech Blog</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Teaching Center</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="w-full md:w-1/4">
-                    <h3 class="text-lg font-semibold mb-4">Legal</h3>
-                    <ul>
-                        <li><a href="#" class="hover:text-blue-400">Terms of Use</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Privacy Policy</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Cookie Policy</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Accessibility</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="mt-8 text-center">
-                <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
-            </div>
+    <footer class="bg-gray-800 bg-opacity-90 text-white py-4">
+        <div class="container mx-auto px-4 md:px-6 text-center">
+            <p>&copy; 2024 Magpie Learning. All rights reserved.</p>
         </div>
     </footer>
 
     <script>
+        // Keeping all the existing JavaScript functionality
         function displayCourses(courses, append = false) {
             const courseContainer = document.getElementById('popular-courses');
             const noCourses = document.getElementById('no-courses-found');
@@ -193,16 +240,14 @@
                     const courseCard = document.createElement('div');
                     courseCard.className = 'course-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200';
                     courseCard.innerHTML = `
-                        <a href="{{ url_for('student.course_details', course_id='') }}${course.id}">
+                        <a href="/student/course/${course.id}">
                             <img src="${course.thumbnail}" alt="${course.course_name}" class="w-full h-40 object-cover">
                             <div class="p-4">
                                 <h3 class="font-semibold text-lg mb-1">${course.course_name}</h3>
-                                <a href="{{ url_for('teacher.public_profile', teacher_id='') }}${course.course_instructor_id}" class="text-sm text-blue-600 hover:underline">${course.course_instructor}</a>
                                 ${course.average_rating && course.total_ratings > 0 ? 
                                     `<p class="text-sm text-gray-600">Rating: ${course.average_rating.toFixed(1)}★ (${course.total_ratings} reviews)</p>` : 
                                     ''}
                                 <p class="text-sm text-gray-600">Duration: ${course.course_duration} hours</p>
-                                <p class="text-sm font-bold mt-2">₹${course.course_price}</p>
                             </div>
                         </a>
                     `;
@@ -249,17 +294,26 @@
             });
         }
 
+        // Search functionality
         const searchInput = document.getElementById('search-input');
         const clearSearch = document.getElementById('clear-search');
         let debounceTimer;
 
         searchInput.addEventListener('input', function() {
             clearTimeout(debounceTimer);
+            const searchResults = document.getElementById('search-results');
+            
+            if (this.value.trim() === '') {
+                searchResults.classList.add('hidden');
+                return;
+            }
+            
             debounceTimer = setTimeout(() => {
                 const searchQuery = this.value;
                 fetch(`{{ url_for('student.search_courses') }}?query=${encodeURIComponent(searchQuery)}`)
                     .then(response => response.json())
                     .then(data => {
+                        displaySearchResults(data);
                         displayCourses(data);
                     })
                     .catch(error => console.error('Error searching courses:', error));
@@ -271,6 +325,7 @@
             searchInput.dispatchEvent(new Event('input'));
         });
 
+        // Load more functionality
         let offset = 8;
         const loadMoreBtn = document.getElementById('load-more');
         if (loadMoreBtn) {
@@ -289,6 +344,7 @@
             });
         }
 
+        // About us section toggle
         const aboutUsBtn = document.getElementById('about-us-btn');
         const aboutUsSection = document.getElementById('about-us');
         
@@ -299,6 +355,7 @@
             }
         });
 
+        // Hero section animation
         const heroSection = document.querySelector('.animate-fade-in');
         heroSection.style.opacity = '0';
         heroSection.style.transition = 'opacity 1s ease-in-out';
@@ -317,17 +374,85 @@
             {% endif %}
         });
 
+        // User dropdown functionality
         const userDropdown = document.getElementById('userDropdown');
         const dropdownMenu = document.getElementById('dropdownMenu');
 
-        userDropdown.addEventListener('click', function(event) {
-            event.stopPropagation();
-            dropdownMenu.classList.toggle('hidden');
-        });
+        if (userDropdown && dropdownMenu) {
+            userDropdown.addEventListener('click', function(event) {
+                event.stopPropagation();
+                dropdownMenu.classList.toggle('hidden');
+            });
 
+            document.addEventListener('click', function(event) {
+                if (!userDropdown.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                    dropdownMenu.classList.add('hidden');
+                }
+            });
+        }
+
+        // Add this to your existing script section
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+
+        // Handle mobile search
+        const mobileSearchInput = document.getElementById('mobile-search-input');
+        if (mobileSearchInput) {
+            mobileSearchInput.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    const searchQuery = this.value;
+                    fetch(`{{ url_for('student.search_courses') }}?query=${encodeURIComponent(searchQuery)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            displayCourses(data);
+                        })
+                        .catch(error => console.error('Error searching courses:', error));
+                }, 300);
+            });
+        }
+
+        // Add to your existing script section
+        function displaySearchResults(results) {
+            const searchResults = document.getElementById('search-results');
+            searchResults.innerHTML = '';
+            
+            if (results.length > 0) {
+                results.forEach(course => {
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'p-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0';
+                    resultItem.innerHTML = `
+                        <div class="flex items-center">
+                            <img src="${course.thumbnail}" alt="${course.course_name}" class="w-12 h-12 object-cover rounded">
+                            <div class="ml-3">
+                                <div class="font-semibold">${course.course_name}</div>
+                                <div class="text-sm text-gray-600">By ${course.course_instructor}</div>
+                            </div>
+                        </div>
+                    `;
+                    resultItem.addEventListener('click', () => {
+                        window.location.href = `/student/course/${course.id}`;
+                    });
+                    searchResults.appendChild(resultItem);
+                });
+                searchResults.classList.remove('hidden');
+            } else {
+                searchResults.classList.add('hidden');
+            }
+        }
+
+        // Close search results when clicking outside
         document.addEventListener('click', function(event) {
-            if (!userDropdown.contains(event.target) && !dropdownMenu.contains(event.target)) {
-                dropdownMenu.classList.add('hidden');
+            const searchResults = document.getElementById('search-results');
+            const searchInput = document.getElementById('search-input');
+            if (!searchInput.contains(event.target)) {
+                searchResults.classList.add('hidden');
             }
         });
     </script>
