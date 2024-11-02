@@ -298,7 +298,7 @@ def course_details(course_id):
                 course['reviews'].append({
                     'student_name': student_name,
                     'rating': rating_data['rating'],
-                    'comment': rating_data.get('review', '')  # Use 'review' instead of 'comment'
+                    'comment': rating_data.get('review', '')
                 })
         
         # Get related courses (people also purchased)
@@ -308,9 +308,18 @@ def course_details(course_id):
             if doc.id != course_id:
                 related_course = doc.to_dict()
                 related_course['id'] = doc.id
+                
+                # Calculate average rating and total ratings for related courses
+                ratings = related_course.get('ratings', {})
+                related_course['average_rating'] = related_course.get('average_rating', 0)
+                related_course['total_ratings'] = related_course.get('total_ratings', 0)
+                
                 # Get the thumbnail of the first video
-                first_video = next((v for v in related_course['videos'].values() if v['video_seq'] == 1), None)
+                videos = related_course.get('videos', {})
+                sorted_videos = sorted(videos.values(), key=lambda x: x.get('video_seq', 0))
+                first_video = sorted_videos[0] if sorted_videos else None
                 related_course['thumbnail'] = first_video['thumbnail'] if first_video else url_for('static', filename='images/default_thumbnail.jpg')
+                
                 related_courses.append(related_course)
         
         student_details = None
@@ -323,7 +332,11 @@ def course_details(course_id):
                 student_details = student_doc.to_dict()
                 user_rating = student_details.get('ratings', {}).get(course_id, {}).get('rating')
 
-        return render_template('student/course_details.html', course=course, student_details=student_details, related_courses=related_courses, user_rating=user_rating)
+        return render_template('student/course_details.html', 
+                             course=course, 
+                             student_details=student_details, 
+                             related_courses=related_courses, 
+                             user_rating=user_rating)
     else:
         flash('Course not found', 'error')
         return redirect(url_for('student.home'))
